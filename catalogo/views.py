@@ -1,9 +1,26 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Count, Prefetch
+from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import AvaliacaoForm, DiretorForm, FilmeForm, GeneroForm
 from .models import Avaliacao, Diretor, Filme, Genero
+
+# Regra de isolamento: Filme e Avaliacao têm dono. Toda consulta a eles parte
+# de `filmes_do(request)` / `avaliacoes_do(request)`, inclusive as que buscam
+# por pk. Assim um id digitado na URL que pertença a outra pessoa vira 404,
+# em vez de abrir o registro dela.
+#
+# Gênero e Diretor são tabelas de referência compartilhadas (o mesmo
+# "Drama" serve para todo mundo), mas os filmes exibidos dentro deles também
+# passam pelo filtro do usuário.
+
+
+def filmes_do(request):
+    return Filme.objects.filter(usuario=request.user)
+
+
+def avaliacoes_do(request):
+    return Avaliacao.objects.filter(usuario=request.user)
 
 
 # --------------------------------------------------------------------- home
@@ -20,7 +37,8 @@ def home(request):
 
 @login_required(login_url='login')
 def dashboard(request):
-    filmes = Filme.objects.select_related('genero', 'diretor')
+    filmes = filmes_do(request).select_related('genero', 'diretor')
+    avaliacoes = avaliacoes_do(request)
 
     destaque = (
         filmes.annotate(media=Avg('avaliacoes__nota'))
@@ -30,12 +48,18 @@ def dashboard(request):
     )
 
     contexto = {
-        'total_filmes': Filme.objects.count(),
-        'total_diretores': Diretor.objects.count(),
-        'total_generos': Genero.objects.count(),
-        'total_avaliacoes': Avaliacao.objects.count(),
+        'total_filmes': filmes.count(),
+        'total_diretores': Diretor.objects.filter(filmes__usuario=request.user).distinct().count(),
+        'total_generos': Genero.objects.filter(filmes__usuario=request.user).distinct().count(),
+        'total_avaliacoes': avaliacoes.count(),
+        'media_geral': avaliacoes.aggregate(m=Avg('nota'))['m'],
+        'por_genero': (
+            Genero.objects.annotate(total=Count('filmes', filter=Q(filmes__usuario=request.user)))
+            .filter(total__gt=0)
+            .order_by('-total', 'nome')
+        ),
         'ultimos_filmes': filmes.order_by('-id')[:5],
-        'ultimas_avaliacoes': Avaliacao.objects.select_related('filme')[:5],
+        'ultimas_avaliacoes': avaliacoes.select_related('filme', 'filme__genero', 'filme__diretor')[:5],
         'destaque': destaque,
     }
     return render(request, 'catalogo/dashboard.html', contexto)
@@ -48,14 +72,17 @@ def dashboard(request):
 @login_required(login_url='login')
 def detalhe_filme(request, pk):
     filme = get_object_or_404(
-        Filme.objects.select_related('genero', 'diretor'), pk=pk
+        filmes_do(request).select_related('genero', 'diretor'), pk=pk
     )
     avaliacoes = filme.avaliacoes.all()
     return render(request, 'catalogo/filme_detalhe.html', {
         'filme': filme,
         'avaliacoes': avaliacoes,
         'media': avaliacoes.aggregate(m=Avg('nota'))['m'],
-        'do_mesmo_diretor': filme.diretor.filmes.exclude(pk=filme.pk).select_related('genero'),
+        'do_mesmo_diretor': (
+            filmes_do(request).filter(diretor=filme.diretor)
+            .exclude(pk=filme.pk).select_related('genero', 'diretor')
+        ),
     })
 
 
@@ -64,7 +91,10 @@ def detalhe_diretor(request, pk):
     diretor = get_object_or_404(Diretor, pk=pk)
     return render(request, 'catalogo/diretor_detalhe.html', {
         'diretor': diretor,
-        'filmes': diretor.filmes.select_related('genero').annotate(media=Avg('avaliacoes__nota')),
+        'filmes': (
+            filmes_do(request).filter(diretor=diretor)
+            .select_related('genero', 'diretor').annotate(media=Avg('avaliacoes__nota'))
+        ),
     })
 
 
@@ -73,7 +103,10 @@ def detalhe_genero(request, pk):
     genero = get_object_or_404(Genero, pk=pk)
     return render(request, 'catalogo/genero_detalhe.html', {
         'genero': genero,
-        'filmes': genero.filmes.select_related('diretor').annotate(media=Avg('avaliacoes__nota')),
+        'filmes': (
+            filmes_do(request).filter(genero=genero)
+            .select_related('genero', 'diretor').annotate(media=Avg('avaliacoes__nota'))
+        ),
     })
 
 
@@ -82,7 +115,7 @@ def detalhe_genero(request, pk):
 @login_required(login_url='login')
 def lista_filmes(request):
     filmes = (
-        Filme.objects.select_related('genero', 'diretor')
+        filmes_do(request).select_related('genero', 'diretor')
         .annotate(media=Avg('avaliacoes__nota'), total_avaliacoes=Count('avaliacoes'))
     )
     return render(request, 'catalogo/filme_lista.html', {'filmes': filmes})
@@ -92,8 +125,10 @@ def lista_filmes(request):
 def criar_filme(request):
     form = FilmeForm(request.POST or None)
     if form.is_valid():
-        form.save()
-        return redirect('lista_filmes')
+        filme = form.save(commit=False)
+        filme.usuario = request.user  # o dono vem da sessão, nunca do formulário
+        filme.save()
+        return redirect('detalhe_filme', pk=filme.pk)
     return render(request, 'catalogo/form.html', {
         'form': form,
         'titulo_pagina': 'Novo filme',
@@ -103,11 +138,11 @@ def criar_filme(request):
 
 @login_required(login_url='login')
 def editar_filme(request, pk):
-    filme = get_object_or_404(Filme, pk=pk)
+    filme = get_object_or_404(filmes_do(request), pk=pk)
     form = FilmeForm(request.POST or None, instance=filme)
     if form.is_valid():
         form.save()
-        return redirect('lista_filmes')
+        return redirect('detalhe_filme', pk=filme.pk)
     return render(request, 'catalogo/form.html', {
         'form': form,
         'titulo_pagina': f'Editar: {filme.titulo}',
@@ -117,7 +152,7 @@ def editar_filme(request, pk):
 
 @login_required(login_url='login')
 def excluir_filme(request, pk):
-    filme = get_object_or_404(Filme, pk=pk)
+    filme = get_object_or_404(filmes_do(request), pk=pk)
     if request.method == 'POST':
         filme.delete()
         return redirect('lista_filmes')
@@ -134,8 +169,9 @@ def excluir_filme(request, pk):
 
 @login_required(login_url='login')
 def lista_diretores(request):
-    diretores = Diretor.objects.annotate(total_filmes=Count('filmes')).prefetch_related(
-        Prefetch('filmes', queryset=Filme.objects.select_related('genero', 'diretor'))
+    meus = Q(filmes__usuario=request.user)
+    diretores = Diretor.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
+        Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
     )
     return render(request, 'catalogo/diretor_lista.html', {'diretores': diretores})
 
@@ -170,6 +206,7 @@ def editar_diretor(request, pk):
 @login_required(login_url='login')
 def excluir_diretor(request, pk):
     diretor = get_object_or_404(Diretor, pk=pk)
+    # Conta os filmes de todos os usuários: o PROTECT do banco vale para todos.
     filmes_vinculados = diretor.filmes.count()
 
     if request.method == 'POST' and filmes_vinculados == 0:
@@ -181,8 +218,8 @@ def excluir_diretor(request, pk):
         'tipo': 'diretor',
         'detalhe': diretor.nacionalidade,
         'bloqueio': (
-            f'Este diretor tem {filmes_vinculados} filme(s) cadastrado(s) e não pode '
-            f'ser excluído. Exclua ou altere os filmes primeiro.'
+            f'Este diretor está vinculado a {filmes_vinculados} filme(s) no sistema e não '
+            f'pode ser excluído enquanto eles existirem.'
         ) if filmes_vinculados else '',
         'voltar_para': 'lista_diretores',
     })
@@ -192,8 +229,9 @@ def excluir_diretor(request, pk):
 
 @login_required(login_url='login')
 def lista_generos(request):
-    generos = Genero.objects.annotate(total_filmes=Count('filmes')).prefetch_related(
-        Prefetch('filmes', queryset=Filme.objects.select_related('genero', 'diretor'))
+    meus = Q(filmes__usuario=request.user)
+    generos = Genero.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
+        Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
     )
     return render(request, 'catalogo/genero_lista.html', {'generos': generos})
 
@@ -239,8 +277,8 @@ def excluir_genero(request, pk):
         'tipo': 'gênero',
         'detalhe': '',
         'bloqueio': (
-            f'Este gênero tem {filmes_vinculados} filme(s) cadastrado(s) e não pode '
-            f'ser excluído. Exclua ou altere os filmes primeiro.'
+            f'Este gênero está vinculado a {filmes_vinculados} filme(s) no sistema e não '
+            f'pode ser excluído enquanto eles existirem.'
         ) if filmes_vinculados else '',
         'voltar_para': 'lista_generos',
     })
@@ -250,16 +288,23 @@ def excluir_genero(request, pk):
 
 @login_required(login_url='login')
 def lista_avaliacoes(request):
-    avaliacoes = Avaliacao.objects.select_related('filme', 'filme__genero', 'filme__diretor')
+    avaliacoes = avaliacoes_do(request).select_related('filme', 'filme__genero', 'filme__diretor')
     return render(request, 'catalogo/avaliacao_lista.html', {'avaliacoes': avaliacoes})
 
 
 @login_required(login_url='login')
 def criar_avaliacao(request):
-    form = AvaliacaoForm(request.POST or None)
+    perfil = getattr(request.user, 'perfil', None)
+    inicial = {
+        'autor': perfil.nome_exibicao if perfil else request.user.username,
+        'filme': request.GET.get('filme'),
+    }
+    form = AvaliacaoForm(request.POST or None, usuario=request.user, initial=inicial)
     if form.is_valid():
-        form.save()
-        return redirect('lista_avaliacoes')
+        avaliacao = form.save(commit=False)
+        avaliacao.usuario = request.user
+        avaliacao.save()
+        return redirect('detalhe_filme', pk=avaliacao.filme_id)
     return render(request, 'catalogo/form.html', {
         'form': form,
         'titulo_pagina': 'Nova avaliação',
@@ -269,8 +314,8 @@ def criar_avaliacao(request):
 
 @login_required(login_url='login')
 def editar_avaliacao(request, pk):
-    avaliacao = get_object_or_404(Avaliacao, pk=pk)
-    form = AvaliacaoForm(request.POST or None, instance=avaliacao)
+    avaliacao = get_object_or_404(avaliacoes_do(request), pk=pk)
+    form = AvaliacaoForm(request.POST or None, instance=avaliacao, usuario=request.user)
     if form.is_valid():
         form.save()
         return redirect('lista_avaliacoes')
@@ -283,7 +328,7 @@ def editar_avaliacao(request, pk):
 
 @login_required(login_url='login')
 def excluir_avaliacao(request, pk):
-    avaliacao = get_object_or_404(Avaliacao, pk=pk)
+    avaliacao = get_object_or_404(avaliacoes_do(request), pk=pk)
     if request.method == 'POST':
         avaliacao.delete()
         return redirect('lista_avaliacoes')

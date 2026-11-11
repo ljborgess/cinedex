@@ -67,6 +67,10 @@ class AvaliacaoForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['filme'].empty_label = 'Selecione um filme'
+        # Só os filmes do próprio usuário aparecem e são aceitos: um id de
+        # filme alheio enviado à mão no POST falha na validação do campo.
+        if usuario is not None:
+            self.fields['filme'].queryset = Filme.objects.filter(usuario=usuario)

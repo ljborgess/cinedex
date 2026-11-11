@@ -30,7 +30,7 @@
         {% endif %}
 
         <div class="acoes" style="margin-top:28px;">
-            <a href="{% url 'criar_avaliacao' %}" class="acao acao-forte">Avaliar</a>
+            <a href="{% url 'criar_avaliacao' %}?filme={{ filme.pk }}" class="acao acao-forte">Avaliar</a>
             <a href="{% url 'editar_filme' filme.pk %}" class="acao">Editar</a>
             <a href="{% url 'excluir_filme' filme.pk %}" class="acao acao-recusa">Excluir</a>
         </div>

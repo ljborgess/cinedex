@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -52,6 +53,10 @@ class Filme(models.Model):
     genero = models.ForeignKey(Genero, on_delete=models.PROTECT, related_name='filmes')
     diretor = models.ForeignKey(Diretor, on_delete=models.PROTECT, related_name='filmes')
     sinopse = models.TextField(max_length=280)
+    # Dono do registro: cada usuário só vê e altera os próprios filmes.
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='filmes'
+    )
 
     class Meta:
         ordering = ['titulo']
@@ -78,6 +83,9 @@ class Avaliacao(models.Model):
     )
     comentario = models.TextField(max_length=280, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avaliacoes'
+    )
 
     class Meta:
         verbose_name = 'avaliação'

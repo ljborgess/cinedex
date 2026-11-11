@@ -72,6 +72,16 @@
     </ul>
 </section>
 
+<section aria-labelledby="titulo-indicadores">
+    <h2 id="titulo-indicadores" class="faixa-titulo">Indicadores</h2>
+    <div class="vinculos">
+        <span class="vinculo"><span>Média geral das suas notas</span>{% if media_geral %}{{ media_geral|floatformat:1 }} de 5{% else %}—{% endif %}</span>
+        {% for genero in por_genero %}
+        <a href="{% url 'detalhe_genero' genero.pk %}" class="vinculo"><span>{{ genero.nome }}</span>{{ genero.total }} filme{{ genero.total|pluralize }}</a>
+        {% endfor %}
+    </div>
+</section>
+
 <section aria-labelledby="titulo-ultimos">
     <h2 id="titulo-ultimos" class="faixa-titulo">Últimos filmes cadastrados</h2>
     <ul class="faixa">
