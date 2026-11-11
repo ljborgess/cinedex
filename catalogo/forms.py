@@ -112,3 +112,33 @@ class ElencoForm(forms.ModelForm):
             if repetido.exists():
                 raise forms.ValidationError('Este ator já está no elenco do filme.')
         return ator
+
+
+class ConsultaForm(forms.Form):
+    """Filtros da tela de consultas. É um Form comum (não ModelForm): não
+    grava nada, só monta a busca. Todos os campos são opcionais."""
+
+    ORDENACOES = [
+        ('titulo', 'Título (A–Z)'),
+        ('-media', 'Maior média'),
+        ('-total_avaliacoes', 'Mais avaliados'),
+    ]
+
+    titulo = forms.CharField(
+        label='Título contém', required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Parte do título'}),
+    )
+    genero = forms.ModelChoiceField(
+        label='Gênero', queryset=Genero.objects.all(), required=False, empty_label='Todos',
+    )
+    diretor = forms.ModelChoiceField(
+        label='Diretor', queryset=Diretor.objects.all(), required=False, empty_label='Todos',
+    )
+    ator = forms.ModelChoiceField(
+        label='Ator no elenco', queryset=Ator.objects.all(), required=False, empty_label='Qualquer',
+    )
+    nota_minima = forms.TypedChoiceField(
+        label='Média mínima', required=False, coerce=int, empty_value=None,
+        choices=[('', 'Qualquer')] + [(n, f'{n} ou mais') for n in range(1, 6)],
+    )
+    ordenar = forms.ChoiceField(label='Ordenar por', choices=ORDENACOES, required=False)

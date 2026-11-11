@@ -1230,3 +1230,50 @@ input, textarea, select { caret-color: var(--golpe); }
 .heroi-meta a:hover { color: var(--golpe-claro); }
 .heroi-titulo a:hover { color: var(--golpe); }
 .heroi-nota { margin: 0 0 26px; }
+
+
+/* --- consultas: filtros em linha e relatório sem régua ------------------- */
+
+.filtros {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0 28px;
+    margin-bottom: 10px;
+}
+
+.filtros .campo { margin-bottom: 22px; }
+
+.relatorio-resumo { margin: 26px 0 8px; }
+
+.relatorio-rolagem { overflow-x: auto; }
+
+.relatorio {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.relatorio th {
+    text-align: left;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.76rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--osso-fraco);
+    padding: 12px 18px 12px 0;
+}
+
+.relatorio td {
+    padding: 12px 18px 12px 0;
+    color: var(--osso-fraco);
+    vertical-align: top;
+}
+
+/* sem régua: a linha par ganha só um véu de malha */
+.relatorio tbody tr:nth-child(odd) td { background: rgba(200, 160, 106, 0.05); }
+.relatorio td:first-child, .relatorio th:first-child { padding-left: 12px; }
+
+.relatorio td.titulo a { color: var(--osso); font-weight: 600; }
+.relatorio td.titulo a:hover { color: var(--golpe); }
+.relatorio td.numero { color: var(--golpe); font-variant-numeric: tabular-nums; white-space: nowrap; }

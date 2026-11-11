@@ -1,9 +1,14 @@
+import csv
+
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Count, Prefetch, Q
+from django.db.models import Avg, Count, F, Prefetch, Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .forms import AtorForm, AvaliacaoForm, DiretorForm, ElencoForm, FilmeForm, GeneroForm
+from .forms import (
+    AtorForm, AvaliacaoForm, ConsultaForm, DiretorForm, ElencoForm, FilmeForm, GeneroForm,
+)
 from .models import Ator, Avaliacao, Diretor, Elenco, Filme, Genero
 
 # Regra de isolamento: Filme e Avaliacao têm dono. Toda consulta a eles parte
@@ -64,6 +69,81 @@ def dashboard(request):
         'destaque': destaque,
     }
     return render(request, 'catalogo/dashboard.html', contexto)
+
+
+# ----------------------------------------------------------------- consultas
+
+def filtrar_filmes(request, dados):
+    """Aplica os filtros validados do ConsultaForm aos filmes do usuário."""
+    filmes = filmes_do(request)
+    if dados.get('titulo'):
+        filmes = filmes.filter(titulo__icontains=dados['titulo'])
+    if dados.get('genero'):
+        filmes = filmes.filter(genero=dados['genero'])
+    if dados.get('diretor'):
+        filmes = filmes.filter(diretor=dados['diretor'])
+    if dados.get('ator'):
+        filmes = filmes.filter(atores=dados['ator'])
+
+    # Count com distinct: o filtro por ator acrescenta um JOIN e não pode
+    # multiplicar a contagem de avaliações.
+    filmes = filmes.select_related('genero', 'diretor').annotate(
+        media=Avg('avaliacoes__nota'),
+        total_avaliacoes=Count('avaliacoes', distinct=True),
+    )
+    if dados.get('nota_minima'):
+        filmes = filmes.filter(media__gte=dados['nota_minima'])
+
+    ordem = dados.get('ordenar') or 'titulo'
+    if ordem == '-media':
+        return filmes.order_by(F('media').desc(nulls_last=True), 'titulo')
+    return filmes.order_by(ordem, 'titulo')
+
+
+@login_required(login_url='login')
+def consulta(request):
+    form = ConsultaForm(request.GET or None)
+    dados = form.cleaned_data if form.is_valid() else {}
+    filmes = filtrar_filmes(request, dados).prefetch_related('atores')
+
+    if request.GET.get('formato') == 'csv':
+        return exportar_csv(filmes)
+
+    return render(request, 'catalogo/consulta.html', {
+        'form': form,
+        'filmes': filmes,
+        'resumo': avaliacoes_do(request).filter(filme__in=filmes.values('pk')).aggregate(
+            media=Avg('nota'), avaliacoes=Count('id'),
+        ),
+        # Mesma busca, com o formato trocado: o relatório exporta o que está na tela.
+        'link_csv': '?' + _query_com(request, formato='csv'),
+    })
+
+
+def _query_com(request, **extras):
+    query = request.GET.copy()
+    for chave, valor in extras.items():
+        query[chave] = valor
+    return query.urlencode()
+
+
+def exportar_csv(filmes):
+    resposta = HttpResponse(content_type='text/csv; charset=utf-8')
+    resposta['Content-Disposition'] = 'attachment; filename="relatorio_filmes.csv"'
+    # BOM + ponto e vírgula: o Excel em português abre acentos e colunas certo.
+    resposta.write('\ufeff')
+    escritor = csv.writer(resposta, delimiter=';')
+    escritor.writerow(['Título', 'Gênero', 'Diretor', 'Elenco', 'Avaliações', 'Média'])
+    for filme in filmes:
+        escritor.writerow([
+            filme.titulo,
+            filme.genero.nome,
+            filme.diretor.nome,
+            ', '.join(ator.nome for ator in filme.atores.all()),
+            filme.total_avaliacoes,
+            f'{filme.media:.1f}'.replace('.', ',') if filme.media is not None else '',
+        ])
+    return resposta
 
 
 # ------------------------------------------------------------------ detalhes

@@ -29,6 +29,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         <nav class="secoes" aria-label="Seções">
             {% if user.is_authenticated %}
             <a href="{% url 'dashboard' %}" class="{% if rota == 'dashboard' %}golpe{% endif %}">Painel</a>
+            <a href="{% url 'consulta' %}" class="{% if rota == 'consulta' %}golpe{% endif %}">Consultas</a>
             <a href="{% url 'lista_filmes' %}" class="{% if 'filme' in rota or 'elenco' in rota %}golpe{% endif %}">Filmes</a>
             <a href="{% url 'lista_atores' %}" class="{% if 'ator' in rota %}golpe{% endif %}">Atores</a>
             <a href="{% url 'lista_diretores' %}" class="{% if 'diretor' in rota %}golpe{% endif %}">Diretores</a>

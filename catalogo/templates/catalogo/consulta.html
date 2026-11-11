@@ -1,0 +1,65 @@
+{% extends 'catalogo/base.html' %}
+
+{% block titulo %}Consultas · Catálogo de Filmes{% endblock %}
+
+{% block conteudo %}
+<div class="cabeca">
+    <h1>Consultas</h1>
+    <div class="acoes">
+        <a href="{{ link_csv }}" class="acao acao-forte">Exportar CSV</a>
+    </div>
+</div>
+
+<form method="get" novalidate>
+    <div class="filtros">
+        {% for campo in form %}
+        <div class="campo {% if campo.errors %}com-erro{% endif %}">
+            <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+            {{ campo }}
+            {% for erro in campo.errors %}<div class="erro">{{ erro }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="acoes">
+        <button type="submit" class="acao acao-forte">Filtrar</button>
+        <a href="{% url 'consulta' %}" class="acao">Limpar</a>
+    </div>
+</form>
+
+<div class="vinculos relatorio-resumo">
+    <span class="vinculo"><span>Filmes encontrados</span>{{ filmes|length }}</span>
+    <span class="vinculo"><span>Avaliações</span>{{ resumo.avaliacoes|default:0 }}</span>
+    <span class="vinculo"><span>Média das notas</span>{% if resumo.media %}{{ resumo.media|floatformat:1 }}{% else %}—{% endif %}</span>
+</div>
+
+{% if filmes %}
+<div class="relatorio-rolagem">
+    <table class="relatorio">
+        <thead>
+            <tr>
+                <th scope="col">Título</th>
+                <th scope="col">Gênero</th>
+                <th scope="col">Diretor</th>
+                <th scope="col">Elenco</th>
+                <th scope="col">Avaliações</th>
+                <th scope="col">Média</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for filme in filmes %}
+            <tr>
+                <td class="titulo"><a href="{% url 'detalhe_filme' filme.pk %}">{{ filme.titulo }}</a></td>
+                <td>{{ filme.genero }}</td>
+                <td>{{ filme.diretor }}</td>
+                <td>{% for ator in filme.atores.all %}{{ ator }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                <td class="numero">{{ filme.total_avaliacoes }}</td>
+                <td class="numero">{% if filme.media %}{{ filme.media|floatformat:1 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="vazio">Nenhum filme com esses filtros</p>
+{% endif %}
+{% endblock %}
