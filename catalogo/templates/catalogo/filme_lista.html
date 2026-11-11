@@ -20,7 +20,7 @@
         </div>
     </a>
     {% empty %}
-    <p class="vazio">Nenhum filme cadastrado</p>
+    {% url 'criar_filme' as u %}{% include 'catalogo/_vazio.html' with texto='Nenhum filme no seu catálogo' url=u rotulo='Cadastrar o primeiro filme' %}
     {% endfor %}
 </div>
 {% endblock %}

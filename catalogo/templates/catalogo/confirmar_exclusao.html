@@ -1,45 +1,45 @@
 {% extends 'catalogo/base.html' %}
 
-{% block titulo %}Confirmar exclusão · Catálogo de Filmes{% endblock %}
+{% block titulo %}{% if bloqueio %}Exclusão bloqueada{% else %}Excluir {{ tipo }}{% endif %} · Catálogo de Filmes{% endblock %}
 {% block largura %}estreito{% endblock %}
 
 {% block conteudo %}
 {% if bloqueio %}
+    {# Bloqueio do PROTECT: escuro, não vermelho. Não é erro de quem tentou. #}
     <div class="cabeca">
-        <h1>Recusado</h1>
-    </div>
-
-    <div class="recusado">
-        <span class="rotulo">Exclusão bloqueada</span>
-        {{ bloqueio }}
+        <h1>Não dá para excluir</h1>
     </div>
 
     <div class="alvo">{{ objeto }}</div>
-    {% if detalhe %}<p class="meta" style="color:var(--osso-fraco);">{{ detalhe }}</p>{% endif %}
+    {% if detalhe %}<p class="meta-fraca">{{ detalhe }}</p>{% endif %}
 
-    <div class="acoes" style="margin-top:34px;">
-        <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao acao-forte">Voltar</a>
+    <div class="recusado">
+        <span class="rotulo">Por que está bloqueado</span>
+        {{ bloqueio }}
+        {% if como_liberar %}<p class="meta-fraca">{{ como_liberar }}</p>{% endif %}
+        <div class="acoes">
+            {% if resolver_url %}<a href="{{ resolver_url }}" class="acao acao-forte">{{ resolver_rotulo }}</a>{% endif %}
+            <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao">Voltar</a>
+        </div>
     </div>
 {% else %}
     <div class="cabeca">
-        <h1>Excluir</h1>
+        <h1>Excluir {{ tipo }}</h1>
     </div>
 
-    <span class="rotulo">Este {{ tipo }} sairá do catálogo</span>
     <div class="alvo condenado">{{ objeto }}</div>
-    {% if detalhe %}<p class="meta" style="color:var(--osso-fraco);">{{ detalhe }}</p>{% endif %}
+    {% if detalhe %}<p class="meta-fraca">{{ detalhe }}</p>{% endif %}
 
-    <div class="recusado" style="margin-top:28px;">
+    <div class="recusado">
         <span class="rotulo">Sem retorno</span>
         Esta ação não pode ser desfeita.{% if aviso %} {{ aviso }}{% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="acoes">
+                <button type="submit" class="acao acao-recusa">Excluir definitivamente</button>
+                <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao">Cancelar</a>
+            </div>
+        </form>
     </div>
-
-    <form method="post">
-        {% csrf_token %}
-        <div class="acoes" style="margin-top:14px;">
-            <button type="submit" class="acao acao-recusa">Excluir definitivamente</button>
-            <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao">Cancelar</a>
-        </div>
-    </form>
 {% endif %}
 {% endblock %}

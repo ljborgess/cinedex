@@ -10,7 +10,25 @@ Continuação dos trabalhos anteriores (2 models → 4 models → versão final)
 - SQLite (padrão do Django)
 - HTML/CSS puro, sem frameworks front-end
 
-## Instalação e execução
+## Rodar em um comando (Windows)
+
+Dê dois cliques em **`rodar.bat`** ou, no terminal, dentro da pasta do projeto:
+
+```bat
+rodar.bat
+```
+
+O script faz tudo em sequência:
+
+1. cria o ambiente virtual, se ainda não existir;
+2. instala as dependências do `requirements.txt`;
+3. aplica as migrations, que já criam e populam o banco (contas, filmes, elenco, avaliações e capas);
+4. roda os testes;
+5. abre o navegador e sobe o servidor em `http://127.0.0.1:8000/`.
+
+Só precisa do Python instalado e de internet para as capas. Rodar de novo não apaga nada: as migrations de seed só acrescentam o que falta. Para parar o servidor, `Ctrl+C`.
+
+## Instalação manual
 
 ```bash
 # 1. Criar e ativar o ambiente virtual
@@ -30,23 +48,38 @@ python manage.py runserver
 
 A aplicação abre em `http://127.0.0.1:8000/`.
 
-### Conta de demonstração
+### Contas prontas
 
-A migration de seed cria um usuário com os 20 filmes, 44 avaliações e o elenco de exemplo:
+As migrations de seed criam as contas abaixo. 
 
-| Usuário | Senha |
-|---|---|
-| `demo` | `filmes123` |
+| Usuário | Senha | O que tem |
+|---|---|---|
+| `demo` | `filmes123` | 44 filmes com capa, pelo menos 3 atores no elenco de cada um, 95 avaliações e perfil preenchido |
+| `ana` | `filmes123` | outro catálogo, de 3 filmes (Oppenheimer, Ainda Estou Aqui, O Menino e a Garça) |
+| `admin` | `filmes123` | superusuário, para o `/admin/` |
 
-Uma conta nova (em **Criar conta**) começa com o catálogo vazio, o que mostra o isolamento de dados na prática. Para usar o `/admin/`, crie um superusuário com `python manage.py createsuperuser`.
+Entrar como `demo` e depois como `ana` mostra o isolamento na prática: cada conta vê só os próprios filmes e avaliações, mas as duas usam os mesmos gêneros, diretores e atores (Fernanda Montenegro está no catálogo das duas). Uma conta nova, em **Criar conta**, começa com o catálogo vazio.
+
+### Roteiro sugerido para a apresentação
+
+1. **Início** (`/`): a vitrine pública, com a parede de cartazes.
+2. Entrar como `demo` e abrir o **Painel**: contagens, maior média, últimos filmes e avaliações.
+3. **Filmes** → abrir um filme: nota, distribuição das notas, elenco, onde assistir e mais filmes do mesmo diretor.
+4. Criar, editar e excluir em qualquer CRUD. Tentar excluir um gênero ou diretor com filmes mostra o bloqueio explicado (`PROTECT`).
+5. **Consultas**: filtrar por gênero, diretor, ator ou nota e exportar o CSV.
+6. Sair e entrar como `ana` para mostrar o isolamento. Abrir `/admin/` com `admin`.
 
 ### Capas dos filmes
 
-Os filmes do seed já vêm com o link do pôster (exibido direto da Wikimedia, então precisa de internet; sem ela, aparece a capa desenhada). Para filmes novos:
+Os 47 filmes do seed já vêm com o link do pôster (exibido direto da Wikimedia, então precisa de internet; sem ela, aparece a capa desenhada). As telas carregam a miniatura de 330px da Wikimedia, três vezes mais leve; se ela falhar, a página tenta o arquivo original. Para filmes novos:
 
 - na página do filme, clique em **Buscar capa automaticamente**; ou
 - cole o endereço de uma imagem no campo **Link da capa** ao editar; ou
 - preencha todos de uma vez: `python manage.py buscar_capas` (use `--usuario demo` para um usuário só e `--todos` para refazer quem já tem capa).
+
+### Onde assistir
+
+A página de cada filme tem atalhos que abrem a busca do título no Netflix, Prime Video, Max, Globoplay e Apple TV, além do JustWatch, que mostra em qual serviço o filme está disponível no Brasil. O sistema não afirma disponibilidade, porque não existe API pública e gratuita para isso e o catálogo dos serviços muda com frequência.
 
 ### Testes
 
@@ -54,7 +87,7 @@ Os filmes do seed já vêm com o link do pôster (exibido direto da Wikimedia, e
 python manage.py test
 ```
 
-São 16 testes em `catalogo/tests.py`: acesso público e restrito, isolamento entre usuários, dashboard, CSV, relacionamentos e capas.
+São 23 testes em `catalogo/tests.py`: acesso público e restrito, isolamento entre usuários, dashboard, CSV, relacionamentos, capas e onde assistir. A classe `ProntoParaApresentarTeste` confere que um banco criado só com `migrate` já vem pronto: contas `demo`, `ana` e `admin`, elenco em todos os filmes e as páginas principais abrindo.
 
 ## Apps
 
@@ -121,13 +154,13 @@ Gênero, Diretor e Ator são tabelas de referência compartilhadas (o mesmo "Dra
 
 | URL | Acesso | Descrição |
 |---|---|---|
-| `/` | público | Home |
-| `/login/`, `/cadastro/` | público | autenticação |
+| `/` | público | vitrine: parede de cartazes animada, uma frase e a ação de entrar |
+| `/login/`, `/cadastro/` | público | autenticação, com a mesma parede de cartazes ao fundo |
 | `/perfil/` | restrito | edição do perfil (1:1) |
 | `/dashboard/` | restrito | indicadores do usuário: totais, média geral, filmes por gênero, destaque, últimos filmes e avaliações |
 | `/consultas/` | restrito | filtros (título, gênero, diretor, ator, média mínima, ordenação) e **exportação CSV** do resultado |
-| `/filmes/` | restrito | CRUD de filmes + elenco na página de detalhe |
-| `/atores/` | restrito | CRUD de atores |
+| `/filmes/` | restrito | CRUD de filmes; o detalhe tem nota, distribuição das notas, elenco, onde assistir e outros filmes do diretor |
+| `/atores/` | restrito | CRUD de atores (a lista mostra quem está no seu catálogo e quem ainda não tem filme) |
 | `/diretores/` | restrito | CRUD de diretores |
 | `/generos/` | restrito | CRUD de gêneros |
 | `/avaliacoes/` | restrito | CRUD de avaliações |
@@ -148,8 +181,9 @@ usuarios/
 catalogo/
   models.py                  Genero, Diretor, Ator, Filme, Elenco, Avaliacao
   forms.py                   um ModelForm por model + ConsultaForm
-  views.py                   home, painel, consultas/CSV e os CRUDs
+  views.py                   home, painel, consultas/CSV, os CRUDs e os links de onde assistir
   capas.py                   busca do pôster na Wikipédia
+  templatetags/vitrine.py    a parede de cartazes do início, do login e do cadastro
   management/commands/       buscar_capas (preenche as capas em lote)
   tests.py                   testes automatizados
   migrations/
@@ -157,12 +191,19 @@ catalogo/
     0004_dono_dos_registros  cria a conta demo e dá dono ao seed
     0006_seed_elenco         atores e elenco de exemplo
     0008_seed_capas          links dos pôsteres dos filmes do seed
+    0009_conta_admin         superusuário admin
+    0010_seed_completo       elenco completo, perfil da demo e a conta ana
+    0011_mais_filmes_demo    mais 24 filmes na demo, com elenco, capa e avaliações
+  static/catalogo/style.css  todo o visual (HTML e CSS puros, sem build)
   templates/catalogo/
     base.html                layout e navegação (muda com o login)
+    home.html                vitrine pública
+    filme_detalhe.html       página do filme
     form.html                formulário compartilhado por todos os ModelForms
     confirmar_exclusao.html  confirmação compartilhada
+rodar.bat                    prepara e sobe tudo em um comando
 ```
 
 ## Decisões de projeto
 
-As escolhas de modelagem e arquitetura, com as alternativas descartadas, estão em [DECISOES.md](DECISOES.md).
+As escolhas de modelagem e arquitetura, com as alternativas descartadas, estão em [DECISOES.md](DECISOES.md). O sistema visual está documentado em [DESIGN.md](DESIGN.md).

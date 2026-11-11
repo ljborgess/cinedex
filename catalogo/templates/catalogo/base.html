@@ -4,12 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block titulo %}Catálogo de Filmes{% endblock %}</title>
+<meta name="theme-color" content="#070a12">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23070a12'/%3E%3Cpath d='M9 6h14v20H9z' fill='%23ff7a1c'/%3E%3Cpath d='M9 17h14v9H9z' fill='%2304060c'/%3E%3Cpath d='M12 20h8v2h-8z' fill='%23efe7da'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'catalogo/style.css' %}">
+<script>
+/* A capa viaja entre páginas só em navegação por link. No envio de formulário
+   (POST com redirect) a transição entre documentos pode deixar a aba sem
+   renderizar no Chromium, então ela é pulada. */
+(function () {
+    var enviando = false;
+    addEventListener('submit', function () { enviando = true; });
+    addEventListener('pageswap', function (e) {
+        if (enviando && e.viewTransition) e.viewTransition.skipTransition();
+    });
+})();
+</script>
 </head>
-<body>
+<body class="{% block corpo %}{% endblock %}">
 <!--
 THESIS: Todo valor possível já está na tela como fantasma apagado atrás da tela de bronze; o valor em vigor é golpeado à frente, aceso. Recusa a grade de cards em caixa que todo catálogo de filme entrega.
 OWN-WORLD: Duas cores sobre malha de bronze — preto azul-tinta de fundo, laranja de cátodo como única luz, osso para prosa. Sem caixa, régua ou divisória em lugar nenhum: o agrupamento vem de densidade de malha e profundidade. Saira Condensed golpeada contra Barlow em osso.
@@ -50,10 +64,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </header>
 
     <main class="{% block largura %}{% endblock %}">
-        {% block conteudo %}{% endblock %}
-    </main>
-</body>
-</html>
         {% if messages %}
         <ul class="avisos">
             {% for mensagem in messages %}
@@ -61,3 +71,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             {% endfor %}
         </ul>
         {% endif %}
+        {% block conteudo %}{% endblock %}
+    </main>
+</body>
+</html>

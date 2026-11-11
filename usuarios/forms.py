@@ -9,6 +9,13 @@ class CadastroForm(UserCreationForm):
         fields = ['username']
         labels = {'username': 'Usuário'}
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # As ajudas padrão do Django são listas longas; aqui basta uma linha.
+        self.fields['username'].help_text = 'Letras, números e @ . + - _'
+        self.fields['password1'].help_text = 'Pelo menos 8 caracteres, sem ser só números.'
+        self.fields['password2'].help_text = ''
+
 
 class PerfilForm(forms.ModelForm):
     class Meta:

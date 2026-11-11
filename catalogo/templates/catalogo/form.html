@@ -23,11 +23,11 @@
         <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
         {{ campo }}
         {% if campo.help_text %}<div class="ajuda">{{ campo.help_text }}</div>{% endif %}
-        {% for erro in campo.errors %}<div class="erro">{{ erro }}</div>{% endfor %}
+        {% if campo.errors %}<div id="{{ campo.auto_id }}_error">{% for erro in campo.errors %}<div class="erro">{{ erro }}</div>{% endfor %}</div>{% endif %}
     </div>
     {% endfor %}
 
-    <div class="acoes" style="margin-top:38px;">
+    <div class="acoes acoes-final">
         <button type="submit" class="acao acao-forte">Salvar</button>
         <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao">Voltar</a>
     </div>

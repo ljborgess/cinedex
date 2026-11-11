@@ -4,10 +4,7 @@
 
 {% block conteudo %}
 <div class="cabeca">
-    <div>
-        <span class="rotulo">Gênero</span>
-        <h1>{{ genero.nome }}</h1>
-    </div>
+    <h1>{{ genero.nome }}</h1>
     <div class="acoes">
         <a href="{% url 'editar_genero' genero.pk %}" class="acao">Editar</a>
         <a href="{% url 'excluir_genero' genero.pk %}" class="acao acao-recusa">Excluir</a>

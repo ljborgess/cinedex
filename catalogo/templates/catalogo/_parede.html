@@ -1,0 +1,19 @@
+{% comment %}
+Parede de cartazes em fileiras inclinadas, correndo em sentidos alternados.
+Decorativa: some para leitores de tela e não recebe clique.
+{% endcomment %}
+{% if fileiras %}
+<div class="parede" aria-hidden="true">
+    <div class="parede-inclinada">
+        {% for fileira in fileiras %}
+        <div class="parede-fileira" style="--f: {{ forloop.counter0 }}">
+            {% for _ in '12' %}
+            <div class="parede-faixa">
+                {% for url in fileira %}<img src="{{ url }}" alt="" width="330" height="495" decoding="async" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">{% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

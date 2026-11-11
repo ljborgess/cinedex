@@ -1,20 +1,22 @@
 {% extends 'catalogo/base.html' %}
+{% load vitrine %}
 
 {% block titulo %}Criar conta · Catálogo de Filmes{% endblock %}
-{% block largura %}estreito{% endblock %}
+{% block corpo %}pagina-vitrine pagina-acesso{% endblock %}
 
 {% block conteudo %}
-<div class="cabeca">
-    <h1>Criar conta</h1>
-</div>
+{% parede_de_cartazes %}
 
-<form method="post" novalidate>
-    {% csrf_token %}
-    {% include 'usuarios/_campos.html' %}
+<section class="acesso" aria-labelledby="titulo-acesso">
+    <h1 id="titulo-acesso" class="acesso-titulo">Criar conta</h1>
+    <p class="acesso-aviso">Seu catálogo começa vazio e só você enxerga o que cadastrar.</p>
 
-    <div class="acoes" style="margin-top:38px;">
-        <button type="submit" class="acao acao-forte">Criar conta</button>
-        <a href="{% url 'login' %}" class="acao">Já tenho conta</a>
-    </div>
-</form>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% include 'usuarios/_campos.html' %}
+        <button type="submit" class="botao-cheio botao-largo">Criar conta</button>
+    </form>
+
+    <p class="acesso-troca">Já tem conta? <a href="{% url 'login' %}">Entrar</a></p>
+</section>
 {% endblock %}

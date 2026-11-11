@@ -17,7 +17,7 @@
             {% include 'catalogo/_mosaico.html' with filmes=genero.filmes.all total=genero.total_filmes %}
         </a>
         <h2><a href="{% url 'detalhe_genero' genero.pk %}">{{ genero.nome }}</a></h2>
-        <div class="medida-linha" style="margin-top:14px;">
+        <div class="medida-linha">
             <strong>{{ genero.total_filmes }}</strong> filme{{ genero.total_filmes|pluralize }}
         </div>
         <div class="acoes">
@@ -27,7 +27,7 @@
         </div>
     </article>
     {% empty %}
-    <p class="vazio">Nenhum gênero cadastrado</p>
+    {% url 'criar_genero' as u %}{% include 'catalogo/_vazio.html' with texto='Nenhum gênero cadastrado' url=u rotulo='Cadastrar gênero' %}
     {% endfor %}
 </div>
 {% endblock %}

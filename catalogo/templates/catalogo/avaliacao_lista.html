@@ -17,7 +17,7 @@
             {% include 'catalogo/_capa.html' with filme=avaliacao.filme %}
         </a>
         <h2><a href="{% url 'detalhe_filme' avaliacao.filme.pk %}">{{ avaliacao.filme.titulo }}</a></h2>
-        <div style="margin-bottom:12px;">
+        <div class="linha-estrelas">
             {% include 'catalogo/_estrelas.html' with avaliacao=avaliacao %}
         </div>
         <p class="corpo">
@@ -32,7 +32,7 @@
         </div>
     </article>
     {% empty %}
-    <p class="vazio">Nenhuma avaliação cadastrada</p>
+    {% url 'criar_avaliacao' as u %}{% include 'catalogo/_vazio.html' with texto='Nenhuma avaliação ainda' url=u rotulo='Avaliar um filme' %}
     {% endfor %}
 </div>
 {% endblock %}

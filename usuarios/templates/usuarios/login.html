@@ -1,28 +1,26 @@
 {% extends 'catalogo/base.html' %}
+{% load vitrine %}
 
 {% block titulo %}Entrar · Catálogo de Filmes{% endblock %}
-{% block largura %}estreito{% endblock %}
+{% block corpo %}pagina-vitrine pagina-acesso{% endblock %}
 
 {% block conteudo %}
-<div class="cabeca">
-    <h1>Entrar</h1>
-</div>
+{% parede_de_cartazes %}
 
-{% if next and not user.is_authenticated %}
-<div class="recusado">
-    <span class="rotulo">Área restrita</span>
-    Entre com sua conta para continuar.
-</div>
-{% endif %}
+<section class="acesso" aria-labelledby="titulo-acesso">
+    <h1 id="titulo-acesso" class="acesso-titulo">Entrar</h1>
 
-<form method="post" novalidate>
-    {% csrf_token %}
-    {% include 'usuarios/_campos.html' %}
-    <input type="hidden" name="next" value="{{ next }}">
+    {% if next and not user.is_authenticated %}
+    <p class="acesso-aviso">Entre com sua conta para continuar.</p>
+    {% endif %}
 
-    <div class="acoes" style="margin-top:38px;">
-        <button type="submit" class="acao acao-forte">Entrar</button>
-        <a href="{% url 'cadastro' %}" class="acao">Criar conta</a>
-    </div>
-</form>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% include 'usuarios/_campos.html' %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="botao-cheio botao-largo">Entrar</button>
+    </form>
+
+    <p class="acesso-troca">Novo por aqui? <a href="{% url 'cadastro' %}">Criar conta</a></p>
+</section>
 {% endblock %}

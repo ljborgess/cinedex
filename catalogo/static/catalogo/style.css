@@ -27,7 +27,9 @@
 /* nenhum link herda o azul padrao do navegador */
 a { color: inherit; text-decoration: none; }
 
-html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+}
 
 body {
     margin: 0;
@@ -57,9 +59,7 @@ body {
 
 /* --- tipografia --------------------------------------------------------- */
 
-.display,
 h1, h2, h3,
-.numeral,
 .marca-golpe,
 .marca-fantasma {
     font-family: 'Saira Condensed', 'Barlow Condensed', sans-serif;
@@ -158,6 +158,8 @@ main {
     position: relative;
     z-index: 1;
     padding: clamp(28px, 5vw, 60px) clamp(20px, 5vw, 72px) 120px;
+    /* a luz do herói sangra até a borda da tela, nunca além dela */
+    overflow-x: clip;
 }
 
 main > * { max-width: 100%; }
@@ -191,86 +193,27 @@ h2.faixa-titulo {
     letter-spacing: 0.14em;
 }
 
-/* --- numerais golpeados, com as irmãs apagadas atrás -------------------- */
-
-.medidas {
+/* título de seção com a ação dela na mesma linha de base */
+.cabeca-secao {
     display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     flex-wrap: wrap;
-    gap: clamp(30px, 6vw, 92px);
-    margin-bottom: clamp(20px, 4vw, 40px);
+    gap: 8px 24px;
+    margin: clamp(48px, 6vw, 76px) 0 20px;
 }
 
-.medida {
-    position: relative;
-    text-decoration: none;
-    display: block;
-    padding-top: 26px;
-    min-width: 108px;
-}
+.cabeca-secao h2.faixa-titulo { margin: 0; }
 
-.medida .numeral {
-    position: relative;
-    display: block;
-    font-size: clamp(3.6rem, 8vw, 6.4rem);
-    line-height: 1.04;
-    color: var(--golpe);
-    filter: drop-shadow(0 0 16px rgba(255, 122, 28, 0.55));
-    transition: filter var(--beat) var(--saida);
-    animation: golpear calc(var(--beat) * 2) var(--saida) backwards;
-    animation-delay: var(--atraso, 0ms);
-}
-
-.medida .rotulo { margin-top: 10px; display: block; }
-
-.medida:hover .numeral {
-    filter: drop-shadow(0 0 30px rgba(255, 122, 28, 0.95));
-}
-
+/* respiros que antes viviam em style="" nos templates */
+.acoes-final { margin-top: 38px; }
+.acoes-pos { margin-top: 28px; }
+.meta-fraca { color: var(--osso-fraco); margin: 6px 0 0; }
 
 @keyframes golpear {
     0%   { opacity: 0; filter: blur(6px); }
     55%  { opacity: 1; filter: blur(0); }
     100% { opacity: 1; filter: blur(0); }
-}
-
-/* --- destaque: o filme de maior média ----------------------------------- */
-
-.destaque {
-    position: relative;
-    padding: clamp(24px, 4vw, 46px) 0 clamp(20px, 3vw, 34px);
-}
-
-.destaque .titulo {
-    font-family: 'Saira Condensed', sans-serif;
-    font-weight: 900;
-    text-transform: uppercase;
-    font-size: clamp(1.9rem, 8.4vw, 8.5rem);
-    /* recorte na malha corta til e acento: a linha precisa de folga no topo */
-    line-height: 1.02;
-    padding-top: 0.06em;
-    letter-spacing: -0.035em;
-    margin: 12px 0 14px;
-    text-wrap: balance;
-    max-width: calc(100vw - 2.6rem);
-    color: var(--osso);
-}
-
-.destaque .meta {
-    color: var(--osso-fraco);
-    font-size: 0.98rem;
-    /* amarrado a viewport, nao ao pai: garante a quebra mesmo se um
-       ancestral exceder a largura util */
-    max-width: min(68ch, calc(100vw - 2.6rem));
-}
-
-.destaque .meta .sep {
-    color: var(--recusa);
-    margin: 0 0.45em;
-}
-
-.destaque .meta strong {
-    color: var(--golpe);
-    font-weight: 600;
 }
 
 /* --- faixas em rolagem horizontal --------------------------------------- */
@@ -302,16 +245,6 @@ h2.faixa-titulo {
     transition: transform var(--beat) var(--saida);
 }
 
-.item .ordem {
-    font-family: 'Saira Condensed', sans-serif;
-    font-weight: 900;
-    font-size: 2.5rem;
-    line-height: 1;
-    color: transparent;
-    -webkit-text-stroke: 1px var(--fantasma);
-    display: block;
-    transition: color var(--beat) var(--saida), -webkit-text-stroke-color var(--beat) var(--saida);
-}
 
 .item .nome {
     font-family: 'Saira Condensed', sans-serif;
@@ -332,7 +265,7 @@ h2.faixa-titulo {
 }
 
 .item:hover { transform: translateY(-4px); }
-.item:hover .ordem { color: var(--golpe); -webkit-text-stroke-color: var(--golpe); }
+
 .item:hover .nome { color: var(--golpe); text-shadow: 0 0 22px rgba(255, 122, 28, 0.5); }
 
 /* --- registros: a listagem de cada entidade ----------------------------- */
@@ -345,15 +278,6 @@ h2.faixa-titulo {
 
 .registro { padding-top: 20px; }
 
-.registro .indice {
-    font-family: 'Saira Condensed', sans-serif;
-    font-weight: 900;
-    font-size: 1.5rem;
-    color: transparent;
-    -webkit-text-stroke: 1px var(--fantasma);
-    display: block;
-    margin-bottom: 10px;
-}
 
 .registro h2 {
     margin: 0 0 10px;
@@ -394,6 +318,10 @@ h2.faixa-titulo {
 }
 
 .registro .medida-linha strong { color: var(--golpe); font-weight: 600; }
+.registro .atributo + .medida-linha,
+.registro .linha-atributos + .medida-linha,
+.registro h2 + .medida-linha { margin-top: 14px; }
+.registro .linha-estrelas { margin-bottom: 12px; }
 
 /* --- estrelas: as acesas golpeiam, as apagadas ficam fantasma ----------- */
 
@@ -517,7 +445,8 @@ h2.faixa-titulo {
 .campo select:focus {
     outline: none;
     border-bottom-color: var(--golpe);
-    box-shadow: 0 1px 18px -6px rgba(255, 122, 28, 0.8);
+    /* o brilho nasce só debaixo da linha: em volta do campo desenharia caixa */
+    box-shadow: 0 12px 14px -12px rgba(255, 122, 28, 0.9);
 }
 
 .campo .ajuda {
@@ -561,6 +490,9 @@ h2.faixa-titulo {
 }
 
 .recusado .rotulo { display: block; margin-bottom: 8px; color: var(--golpe); }
+.recusado .acoes { margin-top: 14px; }
+.alvo + .meta-fraca + .recusado,
+.alvo + .recusado { margin-top: 28px; }
 
 .alvo {
     font-family: 'Saira Condensed', sans-serif;
@@ -609,7 +541,7 @@ body::-webkit-scrollbar-thumb { background: var(--golpe); }
 
 input, textarea, select { caret-color: var(--golpe); }
 
-.numeral, .medida-linha strong, .item .ordem { font-variant-numeric: tabular-nums; }
+.medida-linha strong, .cartaz .nota, .relatorio td.numero { font-variant-numeric: tabular-nums; }
 
 /* --- adaptação ---------------------------------------------------------- */
 
@@ -618,14 +550,6 @@ input, textarea, select { caret-color: var(--golpe); }
     .secoes { gap: 16px; }
     .secoes a { font-size: 0.85rem; letter-spacing: 0.13em; }
 
-    /* em duas colunas as quatro contagens cabem sem estourar a largura */
-    .medidas {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 28px 20px;
-    }
-    .medida { min-width: 0; padding-top: 18px; }
-    .medida .fantasmas { top: 18px; }
 
     /* o título e as ações empilham em vez de disputar a mesma linha */
     .cabeca {
@@ -634,7 +558,8 @@ input, textarea, select { caret-color: var(--golpe); }
         gap: 18px;
     }
     .acoes { gap: 18px; }
-    .item { width: clamp(180px, 62vw, 230px); }
+    .faixa > li { width: clamp(180px, 62vw, 230px); }
+    .faixa.compacta > li { width: clamp(140px, 42vw, 170px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -762,6 +687,7 @@ input, textarea, select { caret-color: var(--golpe); }
     margin-bottom: clamp(36px, 5vw, 64px);
 }
 
+
 .detalhe-topo .titulo {
     font-family: 'Saira Condensed', sans-serif;
     font-weight: 900;
@@ -857,7 +783,9 @@ input, textarea, select { caret-color: var(--golpe); }
 
 /* --- continuidade entre páginas ----------------------------------------- */
 
-@view-transition { navigation: auto; }
+/* desligada: no Chromium a transição entre documentos deixava a aba parada
+   depois de alguns cliques. A navegação comum é instantânea e confiável. */
+@view-transition { navigation: none; }
 
 /* a página cede lugar depressa; a capa é que carrega a continuidade */
 ::view-transition-old(root) {
@@ -953,7 +881,7 @@ input, textarea, select { caret-color: var(--golpe); }
     margin-left: calc(var(--profundidade) * -46px);
     z-index: calc(3 - var(--profundidade));
     transform: translateY(calc(var(--profundidade) * 7px)) rotate(calc(var(--profundidade) * 2.2deg));
-    transition: transform 320ms var(--saida), margin-left 320ms var(--saida);
+    transition: transform 320ms var(--saida);
 }
 
 .mosaico-carta:first-child { margin-left: 0; }
@@ -963,8 +891,13 @@ input, textarea, select { caret-color: var(--golpe); }
 .mosaico-carta .capa-titulo { font-size: 0.72rem; line-height: 0.98; }
 
 /* o leque se abre ao passar o mouse: os filmes se separam */
-.mosaico-link:hover .mosaico-carta { margin-left: -22px; transform: translateY(0) rotate(0deg); }
-.mosaico-link:hover .mosaico-carta:first-child { margin-left: 0; }
+/* Só transform anima (sem recalcular layout). O deslocamento reproduz a
+   abertura antiga de margin-left -46px·d para -22px: a carta d anda
+   23·d² + d pixels para a direita. */
+.mosaico-link:hover .mosaico-carta,
+.mosaico-link:focus-visible .mosaico-carta {
+    transform: translateX(calc(var(--profundidade) * var(--profundidade) * 23px + var(--profundidade) * 1px)) rotate(0deg);
+}
 
 .mosaico-vazio {
     width: 88px;
@@ -995,24 +928,21 @@ input, textarea, select { caret-color: var(--golpe); }
 
 .faixa .item,
 .registros .registro,
-.avaliacao-linha,
-.medidas .medida {
+.avaliacao-linha {
     animation: erguer 420ms var(--saida) backwards;
 }
 
 .faixa .item:nth-child(1), .registros .registro:nth-child(1),
-.avaliacao-linha:nth-child(1), .medidas .medida:nth-child(1) { animation-delay: 40ms; }
+.avaliacao-linha:nth-child(1) { animation-delay: 40ms; }
 .faixa .item:nth-child(2), .registros .registro:nth-child(2),
-.avaliacao-linha:nth-child(2), .medidas .medida:nth-child(2) { animation-delay: 95ms; }
+.avaliacao-linha:nth-child(2) { animation-delay: 95ms; }
 .faixa .item:nth-child(3), .registros .registro:nth-child(3),
-.avaliacao-linha:nth-child(3), .medidas .medida:nth-child(3) { animation-delay: 150ms; }
+.avaliacao-linha:nth-child(3) { animation-delay: 150ms; }
 .faixa .item:nth-child(4), .registros .registro:nth-child(4),
-.avaliacao-linha:nth-child(4), .medidas .medida:nth-child(4) { animation-delay: 205ms; }
+.avaliacao-linha:nth-child(4) { animation-delay: 205ms; }
 .faixa .item:nth-child(n+5), .registros .registro:nth-child(n+5),
 .avaliacao-linha:nth-child(n+5) { animation-delay: 260ms; }
 
-/* o numeral já golpeia por conta própria; não some junto */
-.medidas .medida { animation-name: erguer; }
 
 /* ==========================================================================
    Painel: herói do melhor avaliado + faixa de instrumentos
@@ -1027,7 +957,8 @@ input, textarea, select { caret-color: var(--golpe); }
     padding: clamp(30px, 4vw, 52px) 0 clamp(34px, 4vw, 56px);
     margin-bottom: clamp(18px, 3vw, 34px);
     isolation: isolate;
-    overflow: hidden;
+    /* sem overflow: hidden: o campo de luz se dissolve sozinho, sem desenhar
+       a borda de uma caixa. O main corta o excesso lateral. */
 }
 
 /* o campo de cor do gênero do filme, sangrando para fora da tela */
@@ -1058,6 +989,7 @@ input, textarea, select { caret-color: var(--golpe); }
     inset: 0 auto 0 0;
     width: 40%;
     background: linear-gradient(90deg, transparent, hsl(var(--matiz) 95% 62% / 0.14), transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
     animation: varrer 1500ms var(--saida) 260ms both;
 }
 
@@ -1096,6 +1028,7 @@ input, textarea, select { caret-color: var(--golpe); }
 }
 
 .heroi-meta { color: var(--osso-fraco); font-size: 1rem; margin: 0 0 18px; }
+.heroi-titulo { margin-top: 0; }
 .heroi-meta .sep { color: var(--recusa); margin: 0 0.45em; }
 
 .heroi-nota {
@@ -1206,30 +1139,14 @@ input, textarea, select { caret-color: var(--golpe); }
 
 .instrumentos, .faixa { list-style: none; padding: 0; margin: 0; }
 .instrumentos > li { display: block; }
-.faixa > li { flex: 0 0 auto; list-style: none; }
+/* a largura mora no li: assim toda capa da faixa tem o mesmo tamanho */
+.faixa > li { flex: 0 0 auto; list-style: none; width: clamp(210px, 22vw, 268px); scroll-snap-align: start; }
+.faixa.compacta > li { width: clamp(150px, 16vw, 190px); }
 .faixa > li > .item { width: 100%; }
+.item .capa-pequena { margin-bottom: 0; }
 
 .item .nome, .item .sub { display: block; }
 .item .autor { display: block; margin-top: 4px; }
-
-/* --- foto da capa: cobre a capa autoral, que fica por baixo como reserva -- */
-
-.capa-foto {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: var(--fundo-fundo);
-    transition: filter var(--beat) var(--saida);
-}
-
-.cartaz:hover .capa-foto,
-.item:hover .capa-foto { filter: brightness(1.12); }
-
-.avisos { list-style: none; padding: 0; margin: 0 0 28px; }
-.acoes-capa { margin-top: 14px; }
 
 /* título que existe para leitor de tela, não para a tela */
 .oculto {
@@ -1296,3 +1213,834 @@ input, textarea, select { caret-color: var(--golpe); }
 .relatorio td.titulo a { color: var(--osso); font-weight: 600; }
 .relatorio td.titulo a:hover { color: var(--golpe); }
 .relatorio td.numero { color: var(--golpe); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* no celular cada linha do relatório vira um bloco: título em cima, o resto
+   em pares rótulo/valor. Seis colunas não cabem em 390px sem cortar. */
+@media (max-width: 720px) {
+    .relatorio thead {
+        position: absolute;
+        width: 1px; height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+    .relatorio, .relatorio tbody, .relatorio tr, .relatorio td { display: block; }
+    .relatorio tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 18px;
+        padding: 16px 12px;
+    }
+    .relatorio tbody tr:nth-child(odd) { background: rgba(200, 160, 106, 0.05); }
+    .relatorio tbody tr:nth-child(odd) td { background: none; }
+    .relatorio td, .relatorio td:first-child { padding: 0; }
+    .relatorio td.titulo { grid-column: 1 / -1; font-size: 1.05rem; }
+    .relatorio td.elenco { grid-column: 1 / -1; }
+    .relatorio td[data-rotulo]::before {
+        content: attr(data-rotulo);
+        display: block;
+        font-family: 'Barlow Condensed', sans-serif;
+        font-weight: 600;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--recusa);
+        margin-bottom: 2px;
+    }
+}
+
+
+/* --- foto da capa: cobre a capa autoral, que fica por baixo como reserva -- */
+
+.capa-foto {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* sem fundo opaco: enquanto a foto carrega, a capa autoral aparece por
+       baixo em vez de um retângulo preto */
+    transition: filter var(--beat) var(--saida);
+}
+
+.cartaz:hover .capa-foto,
+.item:hover .capa-foto { filter: brightness(1.12); }
+
+.avisos { list-style: none; padding: 0; margin: 0 0 28px; }
+.acoes-capa { margin-top: 14px; }
+
+
+/* --- estados vazios: dizem o que falta e oferecem a saída ---------------- */
+
+.vazio-bloco {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 28px;
+    padding: 34px 0;
+}
+
+.vazio-bloco .vazio,
+.faixa-vazia .vazio { padding: 0; margin: 0; }
+
+.faixa > li.faixa-vazia {
+    width: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 28px;
+    padding: 18px 0;
+}
+
+/* --- estreia: o painel de quem ainda não cadastrou nada ------------------ */
+
+.estreia {
+    padding: clamp(10px, 2vw, 24px) 0 clamp(36px, 5vw, 60px);
+    max-width: 62rem;
+}
+
+.estreia-titulo {
+    margin: 0 0 18px;
+    font-size: clamp(2.4rem, 7.4vw, 6rem);
+    line-height: 1.02;
+    padding-top: 0.06em;
+    letter-spacing: -0.035em;
+    color: var(--osso);
+    text-wrap: balance;
+    animation: erguer 520ms var(--saida) 60ms backwards;
+}
+
+.estreia-texto {
+    color: var(--osso-fraco);
+    font-size: 1.08rem;
+    margin: 0 0 26px;
+    max-width: 56ch;
+    animation: erguer 520ms var(--saida) 140ms backwards;
+}
+
+.estreia-texto strong { color: var(--golpe-claro); font-weight: 600; }
+.estreia .acoes { margin: 0; animation: erguer 520ms var(--saida) 220ms backwards; }
+
+/* contagem zero: o numeral fica apagado, só o contorno fantasma, sem luz */
+.instrumentos > li.apagado .instrumento-numero {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--fantasma);
+    filter: none;
+}
+.instrumentos > li.apagado .instrumento-trilho i { animation: none; transform: scaleX(0); }
+.instrumentos > li.apagado .instrumento:hover .instrumento-numero { -webkit-text-stroke-color: var(--golpe); filter: none; }
+
+/* --- últimas avaliações: capa ao lado, o comentário ganha voz ----------- */
+
+.faixa-avaliacoes > li { width: clamp(280px, 26vw, 340px); }
+
+.item-avaliacao {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.item-avaliacao .capa-pequena { width: 76px; }
+.item-avaliacao-texto { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.item-avaliacao .nome { margin: 0; font-size: 1.15rem; }
+.item-avaliacao .trecho {
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--osso-fraco);
+    font-style: italic;
+}
+.item-avaliacao .autor {
+    margin: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.74rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--recusa);
+}
+
+@media (max-width: 720px) {
+    .faixa-avaliacoes > li { width: clamp(250px, 78vw, 300px); }
+}
+
+/* ==========================================================================
+   Início: vitrine de streaming. Parede de cartazes correndo atrás, uma frase,
+   uma ação. Os cartazes são só da conta de demonstração.
+   ========================================================================== */
+
+.pagina-vitrine .gauze { display: none; }
+.pagina-vitrine main { padding-top: 0; padding-bottom: 0; }
+
+/* --- a parede: quatro fileiras inclinadas, em sentidos alternados -------- */
+
+.parede {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: var(--fundo-fundo);
+}
+
+.parede-inclinada {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 160vw;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transform: translate(-50%, -50%) rotate(-9deg);
+}
+
+.parede-fileira {
+    display: flex;
+    width: max-content;
+    animation: correr 90s linear infinite;
+    animation-direction: var(--sentido, normal);
+    animation-delay: calc(var(--f) * -17s);
+}
+
+.parede-fileira:nth-child(even) { --sentido: reverse; }
+
+.parede-faixa {
+    display: flex;
+    gap: 14px;
+    padding-right: 14px;
+    /* abertura: cada fileira acende numa vez, como uma tela carregando */
+    animation: fileira-chegar 1100ms var(--saida) backwards;
+    animation-delay: calc(250ms + var(--f) * 160ms);
+}
+
+@keyframes fileira-chegar {
+    from { opacity: 0; transform: translateY(30px) scale(1.04); filter: blur(8px); }
+}
+
+/* a barra de carregamento corre no topo antes da frase aparecer */
+.pagina-vitrine::before {
+    content: '';
+    position: fixed;
+    z-index: 5;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--golpe) 30%, var(--golpe-claro));
+    box-shadow: 0 0 18px rgba(255, 122, 28, 0.8);
+    transform-origin: left;
+    animation: carregar 1300ms var(--saida) both;
+    pointer-events: none;
+}
+
+@keyframes carregar {
+    0%   { transform: scaleX(0); opacity: 1; }
+    70%  { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1); opacity: 0; }
+}
+
+.parede-faixa img {
+    display: block;
+    width: clamp(120px, 11vw, 190px);
+    height: auto;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #10141e;
+    opacity: 0.5;
+}
+
+/* o título chega desfocado e aberto, e se fecha em foco */
+@keyframes revelar {
+    from { opacity: 0; filter: blur(14px); letter-spacing: 0.06em; transform: scale(0.96); }
+}
+
+@keyframes correr {
+    to { transform: translateX(-50%); }
+}
+
+/* o véu: escurece a parede para a frase ler limpa, e a luz de cátodo
+   sobe de baixo, a mesma do resto do sistema */
+.parede::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 58% 52% at 50% 52%, rgba(4, 6, 12, 0.82), transparent 100%),
+        radial-gradient(ellipse 70% 40% at 50% 112%, rgba(255, 122, 28, 0.32), transparent 70%),
+        linear-gradient(to bottom, rgba(4, 6, 12, 0.92) 0%, rgba(4, 6, 12, 0.45) 26%, rgba(4, 6, 12, 0.55) 62%, var(--fundo-fundo) 100%);
+}
+
+/* --- a frase e a ação ----------------------------------------------------- */
+
+.vitrine {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100svh - 130px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 0 8vh;
+}
+
+.vitrine-titulo {
+    margin: 0 0 20px;
+    font-size: clamp(3rem, 9vw, 7.6rem);
+    line-height: 0.94;
+    padding-top: 0.06em;
+    letter-spacing: -0.035em;
+    color: var(--osso);
+    text-shadow: 0 6px 40px rgba(0, 0, 0, 0.7);
+    animation: revelar 1000ms var(--saida) 900ms backwards;
+}
+
+.vitrine-lide {
+    max-width: 34ch;
+    margin: 0 0 34px;
+    font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+    line-height: 1.5;
+    color: var(--osso);
+    opacity: 0.86;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.8);
+    animation: erguer 700ms var(--saida) 1250ms backwards;
+}
+
+.vitrine-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 16px 30px;
+    animation: erguer 700ms var(--saida) 1400ms backwards;
+}
+
+/* a única ação cheia do sistema: só a vitrine pede um botão de verdade */
+.botao-cheio {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 17px 34px;
+    border-radius: 4px;
+    background: var(--golpe);
+    color: var(--fundo-fundo);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 40px -8px rgba(255, 122, 28, 0.65);
+    transition: background var(--beat) var(--saida), transform var(--beat) var(--saida), box-shadow var(--beat) var(--saida);
+}
+
+.botao-cheio::after {
+    content: '';
+    width: 0.5em;
+    height: 0.5em;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform var(--beat) var(--saida);
+}
+
+.botao-cheio:hover,
+.botao-cheio:focus-visible {
+    background: var(--golpe-claro);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 50px -8px rgba(255, 122, 28, 0.8);
+}
+
+.botao-cheio:hover::after { transform: translateX(4px) rotate(45deg); }
+.botao-cheio:focus-visible { outline: 2px solid var(--osso); outline-offset: 4px; }
+
+.vitrine-acoes .acao { color: var(--osso); font-size: 0.95rem; }
+
+@media (max-width: 720px) {
+    .parede-inclinada { width: 260vw; gap: 10px; }
+    .parede-faixa { gap: 10px; padding-right: 10px; }
+    .parede-faixa img { width: 104px; }
+    .vitrine { min-height: calc(100svh - 150px); }
+    .botao-cheio { width: 100%; justify-content: center; }
+    .vitrine-acoes { width: 100%; flex-direction: column; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .parede-fileira, .parede-faixa { animation: none; }
+    .pagina-vitrine::before { display: none; }
+}
+
+/* --- entrar e criar conta: o mesmo cinema atrás, um painel na frente ----- */
+
+.pagina-acesso::before { display: none; }
+.pagina-acesso .parede-faixa img { opacity: 0.32; }
+
+.acesso {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 440px);
+    margin: clamp(8px, 4vh, 48px) auto 40px;
+    padding: clamp(30px, 4vw, 48px) clamp(22px, 4vw, 48px) clamp(28px, 3.4vw, 40px);
+    border-radius: 8px;
+    background: rgba(4, 6, 12, 0.8);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.9);
+    animation: erguer 700ms var(--saida) 250ms backwards;
+}
+
+.acesso-titulo {
+    margin: 0 0 10px;
+    font-size: clamp(2.2rem, 5vw, 3rem);
+    line-height: 1;
+    padding-top: 0.06em;
+    color: var(--osso);
+}
+
+.acesso-aviso {
+    margin: 0 0 28px;
+    font-size: 0.95rem;
+    color: var(--osso-fraco);
+}
+
+.acesso form { margin-top: 26px; }
+.acesso-aviso + form { margin-top: 0; }
+.acesso .campo { margin-bottom: 24px; }
+.acesso .recusado { padding: 0 0 0 16px; max-width: none; }
+
+.botao-cheio.botao-largo {
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+    border: 0;
+    cursor: pointer;
+}
+
+.acesso-troca {
+    margin: 26px 0 0;
+    font-size: 0.95rem;
+    color: var(--osso-fraco);
+}
+
+.acesso-troca a {
+    color: var(--osso);
+    font-weight: 600;
+    border-bottom: 1px solid var(--golpe);
+    transition: color var(--beat) var(--saida);
+}
+
+.acesso-troca a:hover,
+.acesso-troca a:focus-visible { color: var(--golpe); outline: none; }
+
+@media (max-width: 720px) {
+    .acesso { background: rgba(4, 6, 12, 0.88); }
+}
+
+/* ==========================================================================
+   Página do filme: topo de título de streaming, depois avaliações e elenco
+   lado a lado, e no fim mais filmes do mesmo diretor.
+   ========================================================================== */
+
+.obra {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+    gap: clamp(28px, 4vw, 64px);
+    align-items: end;
+    padding: clamp(10px, 3vw, 40px) 0 clamp(40px, 5vw, 64px);
+}
+
+/* o fundo sangra até as bordas da tela e por trás do cabeçalho */
+.obra-fundo {
+    position: absolute;
+    z-index: -1;
+    top: -220px;
+    bottom: 0;
+    left: calc(50% - 50vw);
+    right: calc(50% - 50vw);
+    overflow: hidden;
+    background: radial-gradient(ellipse 60% 70% at 75% 30%, hsl(var(--matiz) 90% 50% / 0.22), transparent 70%);
+}
+
+.obra-fundo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    transform: scale(1.15);
+    filter: blur(36px) saturate(1.25);
+    opacity: 0.5;
+}
+
+.obra-fundo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(7, 10, 18, 0.92) 0%, rgba(7, 10, 18, 0.55) 55%, rgba(7, 10, 18, 0.25) 100%),
+        linear-gradient(to bottom, rgba(7, 10, 18, 0.4) 0%, transparent 35%, var(--fundo) 100%);
+}
+
+.obra-capa { animation: erguer 600ms var(--saida) 60ms backwards; }
+
+.obra-capa .capa {
+    border-radius: 6px;
+    box-shadow: 0 34px 60px -28px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(239, 231, 218, 0.06);
+}
+
+.obra-info > * { animation: erguer 600ms var(--saida) backwards; }
+.obra-info > :nth-child(1) { animation-delay: 120ms; }
+.obra-info > :nth-child(2) { animation-delay: 170ms; }
+.obra-info > :nth-child(3) { animation-delay: 220ms; }
+.obra-info > :nth-child(4) { animation-delay: 270ms; }
+.obra-info > :nth-child(n+5) { animation-delay: 320ms; }
+
+.obra-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin: 0 0 12px;
+    font-size: 0.98rem;
+    color: var(--osso-fraco);
+}
+
+.obra-meta a { color: var(--osso); transition: color var(--beat) var(--saida); }
+.obra-meta a:hover, .obra-meta a:focus-visible { color: var(--golpe-claro); }
+.obra-meta .sep { color: var(--golpe); font-size: 0.7em; }
+
+.obra-titulo {
+    margin: 0 0 16px;
+    font-size: clamp(2.6rem, 6vw, 5.4rem);
+    line-height: 1;
+    padding-top: 0.06em;
+    letter-spacing: -0.035em;
+    color: var(--osso);
+    text-wrap: balance;
+    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+.obra-nota {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    margin: 0 0 18px;
+}
+
+.obra-nota-valor {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "Saira Condensed", sans-serif;
+    font-weight: 900;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--golpe);
+}
+
+.obra-nota-valor svg {
+    width: 0.8em;
+    height: 0.8em;
+    fill: var(--golpe);
+    filter: drop-shadow(0 0 8px rgba(255, 122, 28, 0.7));
+}
+
+.obra-nota-de { font-size: 0.95rem; color: var(--osso-fraco); }
+
+.obra-sinopse {
+    max-width: 62ch;
+    margin: 0 0 28px;
+    font-size: 1.08rem;
+    line-height: 1.6;
+    color: var(--osso);
+    opacity: 0.86;
+}
+
+.obra-acoes { display: flex; flex-wrap: wrap; gap: 12px; }
+.obra-acoes .botao-cheio { padding: 15px 34px; }
+
+.botao-contorno {
+    display: inline-flex;
+    align-items: center;
+    padding: 14px 30px;
+    border: 1px solid rgba(239, 231, 218, 0.35);
+    border-radius: 4px;
+    background: rgba(7, 10, 18, 0.35);
+    color: var(--osso);
+    font-family: "Barlow Condensed", sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: border-color var(--beat) var(--saida), color var(--beat) var(--saida), background var(--beat) var(--saida);
+}
+
+.botao-contorno:hover,
+.botao-contorno:focus-visible {
+    border-color: var(--golpe);
+    color: var(--golpe-claro);
+    background: rgba(255, 122, 28, 0.08);
+    outline: none;
+}
+
+.obra-acoes-menores {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 26px;
+    margin-top: 16px;
+}
+
+.obra-acoes-menores form { margin: 0; }
+.obra-acoes-menores .acao { font-size: 0.78rem; }
+
+/* --- corpo: avaliações à esquerda, elenco à direita ---------------------- */
+
+.obra-corpo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+    gap: clamp(36px, 5vw, 88px);
+    align-items: start;
+}
+
+.obra-corpo .cabeca-secao { margin-top: clamp(20px, 3vw, 36px); }
+
+.monograma {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 122, 28, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 122, 28, 0.3);
+    color: var(--golpe-claro);
+    font-family: "Saira Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+/* resumo: a média grande e a distribuição em barras */
+.resumo-notas {
+    display: flex;
+    align-items: center;
+    gap: clamp(24px, 4vw, 48px);
+    margin-bottom: 18px;
+}
+
+.resumo-media { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+.resumo-media-valor {
+    font-family: "Saira Condensed", sans-serif;
+    font-weight: 900;
+    font-size: clamp(3.4rem, 6vw, 4.6rem);
+    line-height: 0.9;
+    color: var(--golpe);
+    filter: drop-shadow(0 0 20px rgba(255, 122, 28, 0.5));
+}
+
+.distribuicao {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+    max-width: 380px;
+    display: grid;
+    gap: 7px;
+}
+
+.distribuicao li {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) 22px;
+    align-items: center;
+    gap: 12px;
+    font-family: "Barlow Condensed", sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--osso-fraco);
+    font-variant-numeric: tabular-nums;
+}
+
+.distribuicao-quantas { text-align: right; }
+
+.distribuicao-barra {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(239, 231, 218, 0.09);
+    overflow: hidden;
+}
+
+.distribuicao-barra i {
+    display: block;
+    height: 100%;
+    width: var(--p);
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--golpe), var(--golpe-claro));
+    transform-origin: left;
+    animation: preencher-barra 800ms var(--saida) 300ms backwards;
+}
+
+@keyframes preencher-barra { from { transform: scaleX(0); } }
+
+.opinioes { list-style: none; margin: 0; padding: 0; }
+
+.opiniao {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 16px;
+    padding: 20px 0;
+    border-top: 1px solid rgba(239, 231, 218, 0.07);
+    animation: erguer 420ms var(--saida) backwards;
+}
+
+.opiniao:nth-child(2) { animation-delay: 60ms; }
+.opiniao:nth-child(3) { animation-delay: 120ms; }
+.opiniao:nth-child(n+4) { animation-delay: 180ms; }
+
+.opiniao-cabeca {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin: 0 0 6px;
+}
+
+.opiniao-autor {
+    font-family: "Saira Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    color: var(--osso);
+}
+
+.opiniao-quando { font-size: 0.8rem; color: var(--osso-fraco); opacity: 0.75; }
+.opiniao-texto { margin: 0; color: var(--osso); opacity: 0.85; max-width: 64ch; }
+.opiniao-sem-texto { font-style: italic; opacity: 0.55; }
+
+/* elenco em coluna: monograma, nome, papel; as ações aparecem no foco */
+.elenco-lista { list-style: none; margin: 0; padding: 0; }
+
+.elenco-item {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-top: 1px solid rgba(239, 231, 218, 0.07);
+}
+
+.elenco-texto { display: flex; flex-direction: column; min-width: 0; }
+
+.elenco-ator {
+    font-family: "Saira Condensed", sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: var(--osso);
+    transition: color var(--beat) var(--saida);
+}
+
+.elenco-ator:hover, .elenco-ator:focus-visible { color: var(--golpe); }
+.elenco-papel { font-size: 0.9rem; color: var(--osso-fraco); }
+
+.elenco-acoes { display: flex; gap: 14px; }
+.elenco-acoes .acao { font-size: 0.72rem; }
+
+@media (hover: hover) {
+    .elenco-acoes { opacity: 0; transition: opacity var(--beat) var(--saida); }
+    .elenco-item:hover .elenco-acoes,
+    .elenco-item:focus-within .elenco-acoes { opacity: 1; }
+}
+
+@media (max-width: 900px) {
+    .obra-corpo { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 720px) {
+    .obra {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 24px;
+    }
+    .obra-capa { width: min(56vw, 210px); }
+    .obra-acoes > * { flex: 1; justify-content: center; }
+    .resumo-notas { gap: 22px; }
+    .elenco-item { grid-template-columns: 40px minmax(0, 1fr); }
+    .elenco-acoes { grid-column: 2; }
+    .monograma { width: 40px; height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .distribuicao-barra i { animation: none; }
+}
+
+/* --- onde assistir: atalhos para a busca do título em cada serviço ------- */
+
+.onde-assistir { margin-top: 30px; }
+
+.onde-assistir-titulo {
+    margin: 0 0 12px;
+    font-family: "Barlow Condensed", sans-serif;
+    font-weight: 600;
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--osso-fraco);
+}
+
+.servicos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.servico {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(239, 231, 218, 0.2);
+    background: rgba(7, 10, 18, 0.45);
+    color: var(--osso);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: border-color var(--beat) var(--saida), color var(--beat) var(--saida), background var(--beat) var(--saida);
+}
+
+/* a seta diz que o link sai do catálogo */
+.servico::after {
+    content: "";
+    width: 0.42em;
+    height: 0.42em;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    opacity: 0.6;
+    transform: translateY(1px);
+}
+
+.servico:hover,
+.servico:focus-visible {
+    border-color: var(--golpe);
+    color: var(--golpe-claro);
+    background: rgba(255, 122, 28, 0.08);
+    outline: none;
+}
+
+.servico-destaque {
+    border-color: rgba(255, 122, 28, 0.55);
+    color: var(--golpe-claro);
+}
+
+.onde-assistir-nota {
+    margin: 10px 0 0;
+    font-size: 0.8rem;
+    color: var(--osso-fraco);
+    opacity: 0.8;
+}

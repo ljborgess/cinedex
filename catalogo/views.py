@@ -1,4 +1,5 @@
 import csv
+from urllib.parse import quote
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -24,6 +25,11 @@ from .models import Ator, Avaliacao, Diretor, Elenco, Filme, Genero
 # passam pelo filtro do usuário.
 
 
+def _filmes(n):
+    """'1 filme' / '4 filmes': o texto de bloqueio não usa 'filme(s)'."""
+    return f'{n} filme' if n == 1 else f'{n} filmes'
+
+
 def filmes_do(request):
     return Filme.objects.filter(usuario=request.user)
 
@@ -36,10 +42,40 @@ def avaliacoes_do(request):
 # Única tela aberta do catálogo. Todas as outras exigem login.
 
 def home(request):
-    return render(request, 'catalogo/home.html', {
-        'total_generos': Genero.objects.count(),
-        'total_diretores': Diretor.objects.count(),
-    })
+    return render(request, 'catalogo/home.html')
+
+
+# A parede de cartazes da página inicial usa só as capas da conta de
+# demonstração: o catálogo de cada usuário continua invisível para os outros.
+CONTA_DA_VITRINE = 'demo'
+
+
+def _miniatura(url, largura=330):
+    """Troca o arquivo original da Wikimedia pela miniatura, três vezes mais leve."""
+    prefixo = 'https://upload.wikimedia.org/wikipedia/'
+    if not url.startswith(prefixo) or '/thumb/' in url:
+        return url
+    projeto, resto = url[len(prefixo):].split('/', 1)
+    arquivo = resto.rsplit('/', 1)[-1]
+    return f'{prefixo}{projeto}/thumb/{resto}/{largura}px-{arquivo}'
+
+
+def _fileiras_da_vitrine(quantas=4, por_fileira=16):
+    capas = list(
+        Filme.objects.filter(usuario__username=CONTA_DA_VITRINE)
+        .exclude(capa_url='')
+        .order_by('pk')
+        .values_list('capa_url', flat=True)
+    )
+    if len(capas) < 4:
+        return []
+    capas = [_miniatura(url) for url in capas]
+    passo = max(1, len(capas) // quantas)
+    fileiras = []
+    for indice in range(quantas):
+        girada = capas[indice * passo:] + capas[:indice * passo]
+        fileiras.append((girada * por_fileira)[:por_fileira])
+    return fileiras
 
 
 # ---------------------------------------------------------------- dashboard
@@ -70,6 +106,10 @@ def dashboard(request):
         'ultimos_filmes': filmes.order_by('-id')[:5],
         'ultimas_avaliacoes': avaliacoes.select_related('filme', 'filme__genero', 'filme__diretor')[:5],
         'destaque': destaque,
+        # Para a conta nova: gêneros e diretores são compartilhados, então já
+        # existem opções prontas antes do primeiro filme.
+        'generos_disponiveis': Genero.objects.count(),
+        'diretores_disponiveis': Diretor.objects.count(),
     }
     return render(request, 'catalogo/dashboard.html', contexto)
 
@@ -153,17 +193,57 @@ def exportar_csv(filmes):
 # Cada página abaixo é a prova visual de uma relação 1:N: o filme mostra suas
 # avaliações, o diretor e o gênero mostram seus filmes.
 
+# Onde assistir: não existe API pública e gratuita que diga em qual serviço o
+# filme está hoje (isso muda toda semana). Então a página não afirma
+# disponibilidade: ela abre a busca do título em cada serviço, e o JustWatch,
+# que mostra onde o filme está disponível no Brasil.
+SERVICOS_DE_STREAMING = [
+    ('Netflix', 'https://www.netflix.com/search?q={}'),
+    ('Prime Video', 'https://www.primevideo.com/search/?phrase={}'),
+    ('Max', 'https://play.max.com/search?q={}'),
+    ('Globoplay', 'https://globoplay.globo.com/busca/?q={}'),
+    ('Apple TV', 'https://tv.apple.com/br/search?term={}'),
+]
+JUSTWATCH = 'https://www.justwatch.com/br/busca?q={}'
+
+
+def _onde_assistir(titulo):
+    termo = quote(titulo)
+    return {
+        'disponibilidade': JUSTWATCH.format(termo),
+        'servicos': [
+            {'nome': nome, 'url': url.format(termo)} for nome, url in SERVICOS_DE_STREAMING
+        ],
+    }
+
+
 @login_required(login_url='login')
 def detalhe_filme(request, pk):
     filme = get_object_or_404(
         filmes_do(request).select_related('genero', 'diretor'), pk=pk
     )
-    avaliacoes = filme.avaliacoes.all()
+    avaliacoes = list(filme.avaliacoes.all())
+    total = len(avaliacoes)
+    media = sum(a.nota for a in avaliacoes) / total if total else None
+
+    # Quantas avaliações deram cada nota, de 5 a 1, para as barras do resumo.
+    distribuicao = [
+        {
+            'nota': nota,
+            'quantas': sum(1 for a in avaliacoes if a.nota == nota),
+        }
+        for nota in range(5, 0, -1)
+    ]
+    for linha in distribuicao:
+        linha['porcento'] = round(100 * linha['quantas'] / total) if total else 0
+
     return render(request, 'catalogo/filme_detalhe.html', {
         'filme': filme,
         'elenco': filme.elenco.select_related('ator'),
         'avaliacoes': avaliacoes,
-        'media': avaliacoes.aggregate(m=Avg('nota'))['m'],
+        'media': media,
+        'distribuicao': distribuicao,
+        'onde_assistir': _onde_assistir(filme.titulo),
         'do_mesmo_diretor': (
             filmes_do(request).filter(diretor=filme.diretor)
             .exclude(pk=filme.pk).select_related('genero', 'diretor')
@@ -307,8 +387,19 @@ def excluir_elenco(request, pk):
 @login_required(login_url='login')
 def lista_atores(request):
     meus = Q(filmes__usuario=request.user)
-    atores = Ator.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
-        Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
+    # Atores são compartilhados, mas a lista mostra só quem está no seu
+    # catálogo ou quem ainda não está em filme nenhum (recém-cadastrado).
+    # Quem só aparece em filmes de outras contas fica de fora.
+    atores = (
+        Ator.objects.annotate(
+            total_filmes=Count('filmes', filter=meus, distinct=True),
+            total_geral=Count('filmes', distinct=True),
+        )
+        .filter(Q(total_filmes__gt=0) | Q(total_geral=0))
+        .order_by('nome')
+        .prefetch_related(
+            Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
+        )
     )
     return render(request, 'catalogo/ator_lista.html', {'atores': atores})
 
@@ -368,21 +459,16 @@ def excluir_ator(request, pk):
         'tipo': 'ator',
         'detalhe': ator.nacionalidade,
         'bloqueio': (
-            f'Este ator está no elenco de {vinculos} filme(s) no sistema e não pode '
-            f'ser excluído enquanto fizer parte deles.'
+            f'{ator.nome} está no elenco de {_filmes(vinculos)}. Um ator não pode sair '
+            f'do cadastro enquanto aparece nos créditos.'
         ) if vinculos else '',
+        'como_liberar': 'Remova o ator do elenco desses filmes e a exclusão fica liberada.',
+        'resolver_url': reverse('detalhe_ator', args=[ator.pk]),
+        'resolver_rotulo': 'Ver filmografia',
         'voltar_para': 'lista_atores',
     })
 
 
-# ----------------------------------------------------------------- diretores
-
-@login_required(login_url='login')
-def lista_diretores(request):
-    meus = Q(filmes__usuario=request.user)
-    diretores = Diretor.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
-        Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
-    )
 # --------------------------------------------------------------------- capas
 
 @login_required(login_url='login')
@@ -404,6 +490,14 @@ def buscar_capa_filme(request, pk):
     return redirect('detalhe_filme', pk=filme.pk)
 
 
+# ----------------------------------------------------------------- diretores
+
+@login_required(login_url='login')
+def lista_diretores(request):
+    meus = Q(filmes__usuario=request.user)
+    diretores = Diretor.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
+        Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
+    )
     return render(request, 'catalogo/diretor_lista.html', {'diretores': diretores})
 
 
@@ -449,9 +543,12 @@ def excluir_diretor(request, pk):
         'tipo': 'diretor',
         'detalhe': diretor.nacionalidade,
         'bloqueio': (
-            f'Este diretor está vinculado a {filmes_vinculados} filme(s) no sistema e não '
-            f'pode ser excluído enquanto eles existirem.'
+            f'{diretor.nome} assina a direção de {_filmes(filmes_vinculados)} no sistema. '
+            f'Um filme não pode ficar sem diretor.'
         ) if filmes_vinculados else '',
+        'como_liberar': 'Troque o diretor desses filmes ou exclua-os, e a exclusão fica liberada.',
+        'resolver_url': reverse('detalhe_diretor', args=[diretor.pk]),
+        'resolver_rotulo': 'Ver filmes do diretor',
         'voltar_para': 'lista_diretores',
     })
 
@@ -508,9 +605,12 @@ def excluir_genero(request, pk):
         'tipo': 'gênero',
         'detalhe': '',
         'bloqueio': (
-            f'Este gênero está vinculado a {filmes_vinculados} filme(s) no sistema e não '
-            f'pode ser excluído enquanto eles existirem.'
+            f'{genero.nome} classifica {_filmes(filmes_vinculados)} no sistema. '
+            f'Um filme não pode ficar sem gênero.'
         ) if filmes_vinculados else '',
+        'como_liberar': 'Mude o gênero desses filmes ou exclua-os, e a exclusão fica liberada.',
+        'resolver_url': reverse('detalhe_genero', args=[genero.pk]),
+        'resolver_rotulo': 'Ver filmes do gênero',
         'voltar_para': 'lista_generos',
     })
 

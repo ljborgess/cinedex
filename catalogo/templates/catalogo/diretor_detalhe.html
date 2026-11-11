@@ -4,10 +4,7 @@
 
 {% block conteudo %}
 <div class="cabeca">
-    <div>
-        <span class="rotulo">Direção</span>
-        <h1>{{ diretor.nome }}</h1>
-    </div>
+    <h1>{{ diretor.nome }}</h1>
     <div class="acoes">
         <a href="{% url 'editar_diretor' diretor.pk %}" class="acao">Editar</a>
         <a href="{% url 'excluir_diretor' diretor.pk %}" class="acao acao-recusa">Excluir</a>
@@ -15,7 +12,7 @@
 </div>
 
 <div class="vinculos">
-    <span class="vinculo"><span>Nacionalidade</span>{{ diretor.nacionalidade }}</span>
+    {% if diretor.nacionalidade %}<span class="vinculo"><span>Nacionalidade</span>{{ diretor.nacionalidade }}</span>{% endif %}
     <span class="vinculo"><span>No catálogo</span>{{ filmes|length }} filme{{ filmes|length|pluralize }}</span>
 </div>
 

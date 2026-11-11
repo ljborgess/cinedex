@@ -17,8 +17,8 @@
             {% include 'catalogo/_mosaico.html' with filmes=diretor.filmes.all total=diretor.total_filmes %}
         </a>
         <h2><a href="{% url 'detalhe_diretor' diretor.pk %}">{{ diretor.nome }}</a></h2>
-        <div><span class="atributo">{{ diretor.nacionalidade }}</span></div>
-        <div class="medida-linha" style="margin-top:14px;">
+        {% if diretor.nacionalidade %}<div class="linha-atributos"><span class="atributo">{{ diretor.nacionalidade }}</span></div>{% endif %}
+        <div class="medida-linha">
             <strong>{{ diretor.total_filmes }}</strong> filme{{ diretor.total_filmes|pluralize }}
         </div>
         <div class="acoes">
@@ -28,7 +28,7 @@
         </div>
     </article>
     {% empty %}
-    <p class="vazio">Nenhum diretor cadastrado</p>
+    {% url 'criar_diretor' as u %}{% include 'catalogo/_vazio.html' with texto='Nenhum diretor cadastrado' url=u rotulo='Cadastrar diretor' %}
     {% endfor %}
 </div>
 {% endblock %}

@@ -1,0 +1,8 @@
+{% comment %}
+Estado vazio de uma listagem. Recebe `texto` e, opcionalmente, `url` e `rotulo`
+para a ação que tira a tela do vazio. Ocupa a linha inteira da grade.
+{% endcomment %}
+<div class="vazio-bloco">
+    <p class="vazio">{{ texto }}</p>
+    {% if url %}<a href="{{ url }}" class="acao">{{ rotulo }}</a>{% endif %}
+</div>

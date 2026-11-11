@@ -16,7 +16,7 @@
         <div class="campo {% if campo.errors %}com-erro{% endif %}">
             <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
             {{ campo }}
-            {% for erro in campo.errors %}<div class="erro">{{ erro }}</div>{% endfor %}
+            {% if campo.errors %}<div id="{{ campo.auto_id }}_error">{% for erro in campo.errors %}<div class="erro">{{ erro }}</div>{% endfor %}</div>{% endif %}
         </div>
         {% endfor %}
     </div>
@@ -49,17 +49,17 @@
             {% for filme in filmes %}
             <tr>
                 <td class="titulo"><a href="{% url 'detalhe_filme' filme.pk %}">{{ filme.titulo }}</a></td>
-                <td>{{ filme.genero }}</td>
-                <td>{{ filme.diretor }}</td>
-                <td>{% for ator in filme.atores.all %}{{ ator }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
-                <td class="numero">{{ filme.total_avaliacoes }}</td>
-                <td class="numero">{% if filme.media %}{{ filme.media|floatformat:1 }}{% else %}—{% endif %}</td>
+                <td data-rotulo="Gênero">{{ filme.genero }}</td>
+                <td data-rotulo="Diretor">{{ filme.diretor }}</td>
+                <td class="elenco" data-rotulo="Elenco">{% for ator in filme.atores.all %}{{ ator }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+                <td class="numero" data-rotulo="Avaliações">{{ filme.total_avaliacoes }}</td>
+                <td class="numero" data-rotulo="Média">{% if filme.media %}{{ filme.media|floatformat:1 }}{% else %}—{% endif %}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 {% else %}
-<p class="vazio">Nenhum filme com esses filtros</p>
+{% url 'consulta' as u %}{% include 'catalogo/_vazio.html' with texto='Nenhum filme com esses filtros' url=u rotulo='Limpar filtros' %}
 {% endif %}
 {% endblock %}

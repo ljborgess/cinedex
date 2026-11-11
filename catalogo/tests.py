@@ -17,8 +17,8 @@ class BaseTeste(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.ana = User.objects.create_user('ana', password='senha-da-ana-123')
-        cls.bruno = User.objects.create_user('bruno', password='senha-do-bruno-123')
+        cls.ana = User.objects.create_user('teste_ana', password='senha-da-ana-123')
+        cls.bruno = User.objects.create_user('teste_bruno', password='senha-do-bruno-123')
         cls.genero = Genero.objects.create(nome='Teste Drama')
         cls.diretor = Diretor.objects.create(nome='Diretora Teste', nacionalidade='Brasileira')
 
@@ -164,3 +164,57 @@ class CapaTeste(BaseTeste):
         self.assertEqual(self.filme_ana.capa_url, self.URL)
         self.assertEqual(self.filme_bruno.capa_url, 'https://ja-tinha.jpg')
         self.assertEqual(buscar.call_count, 1)
+
+
+class ProntoParaApresentarTeste(TestCase):
+    """O banco criado só com `migrate` já tem tudo que a apresentação usa."""
+
+    def test_seed_cria_conta_demo_com_catalogo(self):
+        demo = User.objects.get(username='demo')
+        self.assertTrue(demo.check_password('filmes123'))
+        self.assertEqual(Filme.objects.filter(usuario=demo).count(), 44)
+
+    def test_seed_da_elenco_a_todo_filme_da_demo(self):
+        from django.db.models import Count
+        filmes = Filme.objects.filter(usuario__username='demo').annotate(n=Count('elenco'))
+        self.assertFalse(filmes.filter(n__lt=3).exists())
+
+    def test_seed_cria_segunda_conta_isolada(self):
+        ana = User.objects.get(username='ana')
+        self.assertTrue(ana.check_password('filmes123'))
+        self.assertEqual(Filme.objects.filter(usuario=ana).count(), 3)
+        self.client.force_login(ana)
+        resposta = self.client.get(reverse('lista_filmes'))
+        self.assertContains(resposta, 'Oppenheimer')
+        self.assertNotContains(resposta, 'Matrix')
+
+    def test_seed_cria_admin_que_entra_no_painel_do_django(self):
+        admin = User.objects.get(username='admin')
+        self.assertTrue(admin.is_superuser and admin.is_staff)
+        self.client.force_login(admin)
+        self.assertEqual(self.client.get('/admin/').status_code, 200)
+
+    def test_paginas_principais_abrem(self):
+        self.assertEqual(self.client.get(reverse('home')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('login')).status_code, 200)
+        self.assertEqual(self.client.get(reverse('cadastro')).status_code, 200)
+        self.client.force_login(User.objects.get(username='demo'))
+        filme = Filme.objects.filter(usuario__username='demo').first()
+        for url in (reverse('dashboard'), reverse('lista_filmes'),
+                    reverse('detalhe_filme', args=[filme.pk]), reverse('consulta')):
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+
+
+    def test_pagina_do_filme_aponta_onde_assistir(self):
+        self.client.force_login(User.objects.get(username='demo'))
+        filme = Filme.objects.get(titulo='A Origem')
+        resposta = self.client.get(reverse('detalhe_filme', args=[filme.pk]))
+        self.assertContains(resposta, 'https://www.justwatch.com/br/busca?q=A%20Origem')
+        self.assertContains(resposta, 'https://www.netflix.com/search?q=A%20Origem')
+        self.assertContains(resposta, 'https://www.primevideo.com/search/?phrase=A%20Origem')
+
+    def test_lista_de_atores_nao_mostra_quem_so_esta_em_outra_conta(self):
+        self.client.force_login(User.objects.get(username='demo'))
+        resposta = self.client.get(reverse('lista_atores'))
+        self.assertContains(resposta, 'Keanu Reeves')
+        self.assertNotContains(resposta, 'Cillian Murphy')

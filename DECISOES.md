@@ -253,3 +253,45 @@ Para não ter de procurar imagem por imagem:
 **Descartado:** upload de arquivo (`ImageField`) — exigiria baixar cada imagem e instalar o Pillow; API do TMDB — exige cadastro e chave.
 
 **Limite conhecido:** a busca é por título, então em sequências pode trazer outro filme da série. O link pode ser corrigido em Editar.
+
+## 32. Início no padrão de streaming
+
+A página pública virou uma vitrine: uma parede de cartazes inclinada, em quatro fileiras que correm em sentidos opostos, e na frente só a frase "Seus filmes. Suas notas.", uma linha de apoio e o botão de começar. Na chegada, uma barra de carregamento corre no topo, as fileiras aparecem uma a uma e o título entra em foco. Entrar e Criar conta usam a mesma parede, mais apagada, com o formulário num painel central.
+
+**Por quê:** o usuário pediu uma landing "tipo Netflix ou Prime Video" e menos informação na tela. A versão anterior tinha leque de gêneros, letreiro de diretores, passo a passo e fecho, o que era excesso para a primeira impressão.
+
+**Cuidado com o isolamento:** os cartazes vêm só da conta `demo` (constante `CONTA_DA_VITRINE` em `views.py`), em miniatura de 330px da Wikimedia, três vezes mais leve que o original. Filmes de outras contas nunca aparecem para quem não entrou.
+
+**Exceção visual:** o botão laranja cheio (`.botao-cheio`) e o painel das telas de acesso são as únicas caixas do sistema; o resto mantém as ações sem caixa (ver DESIGN.md).
+
+## 33. Página do filme reorganizada
+
+O topo usa a própria capa, ampliada e desfocada, como fundo. Na frente: gênero e direção, título, nota com estrela, sinopse, os botões Avaliar e Editar, e as ações menores (buscar capa, excluir) logo abaixo. Depois, avaliações e elenco lado a lado: a média grande com a distribuição das notas de 5 a 1, cada opinião com a inicial do autor, e o elenco numa coluna com nome e personagem. No fim, "Mais de [diretor]".
+
+**Por quê:** antes as seções vinham empilhadas sem hierarquia, e as ações de editar e excluir tinham o mesmo peso de avaliar.
+
+## 34. Onde assistir por busca, sem afirmar disponibilidade
+
+Cada filme tem atalhos que abrem a busca do título no Netflix, Prime Video, Max, Globoplay e Apple TV, e o JustWatch, que mostra em qual serviço o filme está no Brasil.
+
+**Por quê:** não existe API pública e gratuita de disponibilidade, e o catálogo dos serviços muda toda semana. Gravar "está na Netflix" no banco seria inventar um dado que envelhece.
+
+**Descartado:** Disney+ — a busca não abre sem login (responde 404); o JustWatch cobre esse caso. API do TMDB (*watch providers*) — exige cadastro e chave.
+
+## 35. Transição animada entre páginas desligada
+
+O `@view-transition` (a capa "viajando" da lista para o detalhe) foi desligado.
+
+**Por quê:** no Chromium a aba às vezes parava de renderizar depois de alguns cliques ou de enviar um formulário. Numa demonstração ao vivo, uma tela travada custa mais do que o efeito vale.
+
+## 36. Pronto para apresentar com um comando
+
+- `rodar.bat` cria o ambiente virtual, instala as dependências, aplica as migrations, roda os testes, abre o navegador e sobe o servidor.
+- A migration 0009 cria o superusuário `admin` e a 0010 completa o seed: pelo menos 3 atores reais em cada filme da `demo`, perfil preenchido e a conta `ana` com 3 filmes próprios.
+- A 0011 acrescenta 24 filmes à `demo` (de 20 para 44), com 17 diretores novos, o gênero Comédia, elenco de 3 atores e 2 ou 3 avaliações em cada. As capas vieram da API da Wikipédia, conferindo a página do filme certo: a busca automática tinha trazido a continuação em Gladiador, Alien e Jurassic Park.
+- Todo seed usa `get_or_create`: rodar de novo, ou sobre um banco com dados, não duplica nem apaga nada. A 0010 não tem volta (`noop`), porque desfazê-la poderia apagar registros criados depois em cima dela.
+- `ProntoParaApresentarTeste` confere que um banco criado só com `migrate` já tem as contas, o elenco e as páginas principais abrindo.
+
+**Por quê:** a demonstração é ao vivo e o avaliador pode pedir qualquer tela. Nada pode abrir vazio, e preparar o ambiente não pode depender de lembrar comandos.
+
+**Consequência:** com a conta `ana`, a lista de atores passou a filtrar quem só aparece em filmes de outras contas, para a `demo` não ver atores com "0 filmes".
