@@ -66,6 +66,8 @@ class Filme(models.Model):
     genero = models.ForeignKey(Genero, on_delete=models.PROTECT, related_name='filmes')
     diretor = models.ForeignKey(Diretor, on_delete=models.PROTECT, related_name='filmes')
     sinopse = models.TextField(max_length=280)
+    # Só o endereço da imagem; o arquivo não fica no projeto. Vazio = capa autoral.
+    capa_url = models.URLField('link da capa', max_length=500, blank=True)
     # N:N com tabela intermediária: o Elenco guarda o personagem de cada ator.
     atores = models.ManyToManyField(Ator, through='Elenco', related_name='filmes', blank=True)
     # Dono do registro: cada usuário só vê e altera os próprios filmes.

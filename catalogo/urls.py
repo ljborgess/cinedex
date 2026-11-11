@@ -13,6 +13,7 @@ urlpatterns = [
     path('filmes/<int:pk>/editar/', views.editar_filme, name='editar_filme'),
     path('filmes/<int:pk>/excluir/', views.excluir_filme, name='excluir_filme'),
 
+    path('filmes/<int:pk>/buscar-capa/', views.buscar_capa_filme, name='buscar_capa'),
     path('filmes/<int:pk>/elenco/novo/', views.criar_elenco, name='criar_elenco'),
     path('elenco/<int:pk>/editar/', views.editar_elenco, name='editar_elenco'),
     path('elenco/<int:pk>/excluir/', views.excluir_elenco, name='excluir_elenco'),

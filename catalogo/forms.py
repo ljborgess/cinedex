@@ -27,15 +27,22 @@ class DiretorForm(forms.ModelForm):
 class FilmeForm(forms.ModelForm):
     class Meta:
         model = Filme
-        fields = ['titulo', 'genero', 'diretor', 'sinopse']
+        fields = ['titulo', 'genero', 'diretor', 'sinopse', 'capa_url']
         labels = {
             'titulo': 'Título',
             'genero': 'Gênero',
             'diretor': 'Diretor',
             'sinopse': 'Sinopse',
+            'capa_url': 'Link da capa (opcional)',
+        }
+        help_texts = {
+            'capa_url': 'Cole o endereço de uma imagem da internet. Em branco, o filme usa a '
+                        'capa desenhada; na página do filme há um botão para buscar a capa '
+                        'automaticamente.',
         }
         widgets = {
             'titulo': forms.TextInput(attrs={'placeholder': 'Título do filme'}),
+            'capa_url': forms.URLInput(attrs={'placeholder': 'https://...'}),
             'sinopse': forms.Textarea(
                 attrs={'rows': 3, 'placeholder': 'Escreva uma breve sinopse...'}
             ),

@@ -54,3 +54,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     </main>
 </body>
 </html>
+        {% if messages %}
+        <ul class="avisos">
+            {% for mensagem in messages %}
+            <li class="recusado"><span class="rotulo">{% if mensagem.level_tag == 'success' %}Pronto{% else %}Aviso{% endif %}</span>{{ mensagem }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}

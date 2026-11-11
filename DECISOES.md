@@ -238,3 +238,18 @@ Os filtros vão na query string; **Exportar CSV** reaproveita a mesma query com 
 **Por quê:** GET deixa a busca compartilhável e garante que o relatório exportado seja exatamente o que está na tela. O CSV sai com BOM e ponto e vírgula para abrir certo no Excel em português.
 
 **Descartado:** PDF — exigiria uma biblioteca a mais (reportlab ou weasyprint) sem ganho para o requisito.
+
+## 31. Capas reais por link, com a capa autoral como reserva (revê o item 21)
+
+`Filme.capa_url` guarda só o endereço de uma imagem. Com link, a foto cobre a capa desenhada; sem link, ou se o link quebrar (`onerror`), a capa autoral continua aparecendo.
+
+Para não ter de procurar imagem por imagem:
+- o botão **Buscar capa automaticamente**, na página do filme, e o comando `python manage.py buscar_capas` consultam a Wikipédia (pt → artigo equivalente em inglês, onde os pôsteres ficam). Não precisa de chave nem de biblioteca extra;
+- a busca só aceita a página se ela for de um filme e citar o diretor cadastrado, para não trazer o livro de mesmo nome;
+- a migration 0008 já traz os links dos 20 filmes do seed, conferidos à mão (a busca errou Kill Bill e O Senhor dos Anéis, que pegaram a continuação).
+
+**Por quê:** o usuário pediu fotos reais sem ter de baixar cada arquivo. O item 21 recusava pôsteres por depender de internet e por propriedade; a capa autoral como reserva resolve a demonstração offline, e o uso aqui é acadêmico, com as imagens servidas pela própria Wikimedia.
+
+**Descartado:** upload de arquivo (`ImageField`) — exigiria baixar cada imagem e instalar o Pillow; API do TMDB — exige cadastro e chave.
+
+**Limite conhecido:** a busca é por título, então em sequências pode trazer outro filme da série. O link pode ser corrigido em Editar.

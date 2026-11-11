@@ -1,4 +1,8 @@
+from io import StringIO
+from unittest import mock
+
 from django.contrib.auth.models import User
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
@@ -123,3 +127,40 @@ class RelacionamentosTeste(BaseTeste):
         Elenco.objects.create(filme=self.filme_ana, ator=ator, personagem='A')
         with self.assertRaises(IntegrityError):
             Elenco.objects.create(filme=self.filme_ana, ator=ator, personagem='B')
+
+
+class CapaTeste(BaseTeste):
+    URL = 'https://upload.wikimedia.org/exemplo.jpg'
+
+    def setUp(self):
+        self.client.force_login(self.ana)
+
+    def test_capa_url_vira_imagem_e_sem_link_fica_a_capa_desenhada(self):
+        resposta = self.client.get(reverse('lista_filmes'))
+        self.assertNotContains(resposta, 'capa-foto')
+        Filme.objects.filter(pk=self.filme_ana.pk).update(capa_url=self.URL)
+        resposta = self.client.get(reverse('lista_filmes'))
+        self.assertContains(resposta, f'src="{self.URL}"')
+
+    @mock.patch('catalogo.views.buscar_capa', return_value=URL)
+    def test_botao_buscar_capa_grava_o_link(self, buscar):
+        self.client.post(reverse('buscar_capa', args=[self.filme_ana.pk]))
+        self.filme_ana.refresh_from_db()
+        self.assertEqual(self.filme_ana.capa_url, self.URL)
+        buscar.assert_called_once_with('Filme da Ana', 'Diretora Teste')
+
+    @mock.patch('catalogo.views.buscar_capa', return_value=URL)
+    def test_nao_busca_capa_de_filme_de_outro_usuario(self, buscar):
+        resposta = self.client.post(reverse('buscar_capa', args=[self.filme_bruno.pk]))
+        self.assertEqual(resposta.status_code, 404)
+        buscar.assert_not_called()
+
+    @mock.patch('catalogo.management.commands.buscar_capas.buscar_capa', return_value=URL)
+    def test_comando_preenche_so_quem_nao_tem_capa(self, buscar):
+        Filme.objects.filter(pk=self.filme_bruno.pk).update(capa_url='https://ja-tinha.jpg')
+        call_command('buscar_capas', stdout=StringIO())
+        self.filme_ana.refresh_from_db()
+        self.filme_bruno.refresh_from_db()
+        self.assertEqual(self.filme_ana.capa_url, self.URL)
+        self.assertEqual(self.filme_bruno.capa_url, 'https://ja-tinha.jpg')
+        self.assertEqual(buscar.call_count, 1)

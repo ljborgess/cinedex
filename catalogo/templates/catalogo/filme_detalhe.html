@@ -34,6 +34,10 @@
             <a href="{% url 'editar_filme' filme.pk %}" class="acao">Editar</a>
             <a href="{% url 'excluir_filme' filme.pk %}" class="acao acao-recusa">Excluir</a>
         </div>
+        <form method="post" action="{% url 'buscar_capa' filme.pk %}" class="acoes acoes-capa">
+            {% csrf_token %}
+            <button type="submit" class="acao">{% if filme.capa_url %}Buscar outra capa{% else %}Buscar capa automaticamente{% endif %}</button>
+        </form>
     </div>
 </div>
 

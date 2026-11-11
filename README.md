@@ -40,13 +40,21 @@ A migration de seed cria um usuário com os 20 filmes, 44 avaliações e o elenc
 
 Uma conta nova (em **Criar conta**) começa com o catálogo vazio, o que mostra o isolamento de dados na prática. Para usar o `/admin/`, crie um superusuário com `python manage.py createsuperuser`.
 
+### Capas dos filmes
+
+Os filmes do seed já vêm com o link do pôster (exibido direto da Wikimedia, então precisa de internet; sem ela, aparece a capa desenhada). Para filmes novos:
+
+- na página do filme, clique em **Buscar capa automaticamente**; ou
+- cole o endereço de uma imagem no campo **Link da capa** ao editar; ou
+- preencha todos de uma vez: `python manage.py buscar_capas` (use `--usuario demo` para um usuário só e `--todos` para refazer quem já tem capa).
+
 ### Testes
 
 ```bash
 python manage.py test
 ```
 
-São 12 testes em `catalogo/tests.py`: acesso público e restrito, isolamento entre usuários, dashboard, CSV e relacionamentos.
+São 16 testes em `catalogo/tests.py`: acesso público e restrito, isolamento entre usuários, dashboard, CSV, relacionamentos e capas.
 
 ## Apps
 
@@ -91,7 +99,7 @@ Diretor ─1:N──┘      │
 | `Genero` | catalogo | nome (único) |
 | `Diretor` | catalogo | nome, nacionalidade |
 | `Ator` | catalogo | nome, nacionalidade |
-| `Filme` | catalogo | titulo, genero, diretor, sinopse, atores, usuario |
+| `Filme` | catalogo | titulo, genero, diretor, sinopse, capa_url, atores, usuario |
 | `Elenco` | catalogo | filme, ator, personagem, ordem — único por (filme, ator) |
 | `Avaliacao` | catalogo | filme, autor, nota (1–5), comentario, criado_em, usuario |
 
@@ -141,11 +149,14 @@ catalogo/
   models.py                  Genero, Diretor, Ator, Filme, Elenco, Avaliacao
   forms.py                   um ModelForm por model + ConsultaForm
   views.py                   home, painel, consultas/CSV e os CRUDs
+  capas.py                   busca do pôster na Wikipédia
+  management/commands/       buscar_capas (preenche as capas em lote)
   tests.py                   testes automatizados
   migrations/
     0002, 0003               seed de gêneros, diretores, filmes e avaliações
     0004_dono_dos_registros  cria a conta demo e dá dono ao seed
     0006_seed_elenco         atores e elenco de exemplo
+    0008_seed_capas          links dos pôsteres dos filmes do seed
   templates/catalogo/
     base.html                layout e navegação (muda com o login)
     form.html                formulário compartilhado por todos os ModelForms

@@ -4,6 +4,9 @@ Capa autoral de um filme. Recebe `filme`.
 A matiz vem do gênero e fica na faixa do laranja de cátodo, então dois gêneros
 se distinguem sem que a capa saia das duas cores do sistema.
 
+Se o filme tiver `capa_url`, a foto cobre a capa desenhada. Se o link
+quebrar, a foto some sozinha (onerror) e a capa desenhada reaparece.
+
 Passe `vt=1` para a capa participar da transição entre páginas. Só onde o filme
 aparece uma única vez na tela: nome de transição repetido cancela o efeito.
 {% endcomment %}
@@ -15,4 +18,5 @@ aparece uma única vez na tela: nome de transição repetido cancela o efeito.
     <span class="capa-genero">{{ filme.genero }}</span>
     <span class="capa-titulo">{{ filme.titulo }}</span>
     <span class="capa-diretor">{{ filme.diretor }}</span>
+    {% if filme.capa_url %}<img class="capa-foto" src="{{ filme.capa_url }}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">{% endif %}
 </div>

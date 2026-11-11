@@ -1,11 +1,14 @@
 import csv
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, F, Prefetch, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 
+from .capas import ErroDeBusca, buscar_capa
 from .forms import (
     AtorForm, AvaliacaoForm, ConsultaForm, DiretorForm, ElencoForm, FilmeForm, GeneroForm,
 )
@@ -380,6 +383,27 @@ def lista_diretores(request):
     diretores = Diretor.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
         Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
     )
+# --------------------------------------------------------------------- capas
+
+@login_required(login_url='login')
+@require_POST
+def buscar_capa_filme(request, pk):
+    filme = get_object_or_404(filmes_do(request).select_related('diretor'), pk=pk)
+    try:
+        url = buscar_capa(filme.titulo, filme.diretor.nome)
+    except ErroDeBusca as erro:
+        messages.warning(request, f'Não foi possível buscar a capa agora: {erro}.')
+        return redirect('detalhe_filme', pk=filme.pk)
+
+    if url:
+        filme.capa_url = url
+        filme.save(update_fields=['capa_url'])
+        messages.success(request, 'Capa encontrada na Wikipédia. Se não for a certa, troque o link em Editar.')
+    else:
+        messages.warning(request, 'Nenhuma capa confiável encontrada. Você pode colar um link em Editar.')
+    return redirect('detalhe_filme', pk=filme.pk)
+
+
     return render(request, 'catalogo/diretor_lista.html', {'diretores': diretores})
 
 
