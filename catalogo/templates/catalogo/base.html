@@ -21,17 +21,28 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div class="gauze" aria-hidden="true"></div>
 
     <header class="topo">
-        <a href="{% url 'dashboard' %}" class="marca">
+        <a href="{% url 'home' %}" class="marca">
             <span class="marca-golpe">Catálogo</span>
             <span class="marca-fantasma">de Filmes</span>
         </a>
         {% with rota=request.resolver_match.url_name %}
-        <nav class="secoes">
+        <nav class="secoes" aria-label="Seções">
+            {% if user.is_authenticated %}
             <a href="{% url 'dashboard' %}" class="{% if rota == 'dashboard' %}golpe{% endif %}">Painel</a>
-            <a href="{% url 'lista_filmes' %}" class="{% if 'filme' in rota %}golpe{% endif %}">Filmes</a>
+            <a href="{% url 'lista_filmes' %}" class="{% if 'filme' in rota or 'elenco' in rota %}golpe{% endif %}">Filmes</a>
             <a href="{% url 'lista_diretores' %}" class="{% if 'diretor' in rota %}golpe{% endif %}">Diretores</a>
             <a href="{% url 'lista_generos' %}" class="{% if 'genero' in rota %}golpe{% endif %}">Gêneros</a>
             <a href="{% url 'lista_avaliacoes' %}" class="{% if 'avalia' in rota %}golpe{% endif %}">Avaliações</a>
+            <a href="{% url 'perfil' %}" class="{% if rota == 'perfil' %}golpe{% endif %}">{{ user.perfil.nome_exibicao|default:user.username }}</a>
+            <form method="post" action="{% url 'logout' %}" class="sair">
+                {% csrf_token %}
+                <button type="submit">Sair</button>
+            </form>
+            {% else %}
+            <a href="{% url 'home' %}" class="{% if rota == 'home' %}golpe{% endif %}">Início</a>
+            <a href="{% url 'login' %}" class="{% if rota == 'login' %}golpe{% endif %}">Entrar</a>
+            <a href="{% url 'cadastro' %}" class="{% if rota == 'cadastro' %}golpe{% endif %}">Criar conta</a>
+            {% endif %}
         </nav>
         {% endwith %}
     </header>

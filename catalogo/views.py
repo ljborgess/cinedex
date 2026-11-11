@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -5,8 +6,19 @@ from .forms import AvaliacaoForm, DiretorForm, FilmeForm, GeneroForm
 from .models import Avaliacao, Diretor, Filme, Genero
 
 
+# --------------------------------------------------------------------- home
+# Única tela aberta do catálogo. Todas as outras exigem login.
+
+def home(request):
+    return render(request, 'catalogo/home.html', {
+        'total_generos': Genero.objects.count(),
+        'total_diretores': Diretor.objects.count(),
+    })
+
+
 # ---------------------------------------------------------------- dashboard
 
+@login_required(login_url='login')
 def dashboard(request):
     filmes = Filme.objects.select_related('genero', 'diretor')
 
@@ -33,6 +45,7 @@ def dashboard(request):
 # Cada página abaixo é a prova visual de uma relação 1:N: o filme mostra suas
 # avaliações, o diretor e o gênero mostram seus filmes.
 
+@login_required(login_url='login')
 def detalhe_filme(request, pk):
     filme = get_object_or_404(
         Filme.objects.select_related('genero', 'diretor'), pk=pk
@@ -46,6 +59,7 @@ def detalhe_filme(request, pk):
     })
 
 
+@login_required(login_url='login')
 def detalhe_diretor(request, pk):
     diretor = get_object_or_404(Diretor, pk=pk)
     return render(request, 'catalogo/diretor_detalhe.html', {
@@ -54,6 +68,7 @@ def detalhe_diretor(request, pk):
     })
 
 
+@login_required(login_url='login')
 def detalhe_genero(request, pk):
     genero = get_object_or_404(Genero, pk=pk)
     return render(request, 'catalogo/genero_detalhe.html', {
@@ -64,6 +79,7 @@ def detalhe_genero(request, pk):
 
 # -------------------------------------------------------------------- filmes
 
+@login_required(login_url='login')
 def lista_filmes(request):
     filmes = (
         Filme.objects.select_related('genero', 'diretor')
@@ -72,6 +88,7 @@ def lista_filmes(request):
     return render(request, 'catalogo/filme_lista.html', {'filmes': filmes})
 
 
+@login_required(login_url='login')
 def criar_filme(request):
     form = FilmeForm(request.POST or None)
     if form.is_valid():
@@ -84,6 +101,7 @@ def criar_filme(request):
     })
 
 
+@login_required(login_url='login')
 def editar_filme(request, pk):
     filme = get_object_or_404(Filme, pk=pk)
     form = FilmeForm(request.POST or None, instance=filme)
@@ -97,6 +115,7 @@ def editar_filme(request, pk):
     })
 
 
+@login_required(login_url='login')
 def excluir_filme(request, pk):
     filme = get_object_or_404(Filme, pk=pk)
     if request.method == 'POST':
@@ -113,6 +132,7 @@ def excluir_filme(request, pk):
 
 # ----------------------------------------------------------------- diretores
 
+@login_required(login_url='login')
 def lista_diretores(request):
     diretores = Diretor.objects.annotate(total_filmes=Count('filmes')).prefetch_related(
         Prefetch('filmes', queryset=Filme.objects.select_related('genero', 'diretor'))
@@ -120,6 +140,7 @@ def lista_diretores(request):
     return render(request, 'catalogo/diretor_lista.html', {'diretores': diretores})
 
 
+@login_required(login_url='login')
 def criar_diretor(request):
     form = DiretorForm(request.POST or None)
     if form.is_valid():
@@ -132,6 +153,7 @@ def criar_diretor(request):
     })
 
 
+@login_required(login_url='login')
 def editar_diretor(request, pk):
     diretor = get_object_or_404(Diretor, pk=pk)
     form = DiretorForm(request.POST or None, instance=diretor)
@@ -145,6 +167,7 @@ def editar_diretor(request, pk):
     })
 
 
+@login_required(login_url='login')
 def excluir_diretor(request, pk):
     diretor = get_object_or_404(Diretor, pk=pk)
     filmes_vinculados = diretor.filmes.count()
@@ -167,6 +190,7 @@ def excluir_diretor(request, pk):
 
 # -------------------------------------------------------------------- gêneros
 
+@login_required(login_url='login')
 def lista_generos(request):
     generos = Genero.objects.annotate(total_filmes=Count('filmes')).prefetch_related(
         Prefetch('filmes', queryset=Filme.objects.select_related('genero', 'diretor'))
@@ -174,6 +198,7 @@ def lista_generos(request):
     return render(request, 'catalogo/genero_lista.html', {'generos': generos})
 
 
+@login_required(login_url='login')
 def criar_genero(request):
     form = GeneroForm(request.POST or None)
     if form.is_valid():
@@ -186,6 +211,7 @@ def criar_genero(request):
     })
 
 
+@login_required(login_url='login')
 def editar_genero(request, pk):
     genero = get_object_or_404(Genero, pk=pk)
     form = GeneroForm(request.POST or None, instance=genero)
@@ -199,6 +225,7 @@ def editar_genero(request, pk):
     })
 
 
+@login_required(login_url='login')
 def excluir_genero(request, pk):
     genero = get_object_or_404(Genero, pk=pk)
     filmes_vinculados = genero.filmes.count()
@@ -221,11 +248,13 @@ def excluir_genero(request, pk):
 
 # ---------------------------------------------------------------- avaliações
 
+@login_required(login_url='login')
 def lista_avaliacoes(request):
     avaliacoes = Avaliacao.objects.select_related('filme', 'filme__genero', 'filme__diretor')
     return render(request, 'catalogo/avaliacao_lista.html', {'avaliacoes': avaliacoes})
 
 
+@login_required(login_url='login')
 def criar_avaliacao(request):
     form = AvaliacaoForm(request.POST or None)
     if form.is_valid():
@@ -238,6 +267,7 @@ def criar_avaliacao(request):
     })
 
 
+@login_required(login_url='login')
 def editar_avaliacao(request, pk):
     avaliacao = get_object_or_404(Avaliacao, pk=pk)
     form = AvaliacaoForm(request.POST or None, instance=avaliacao)
@@ -251,6 +281,7 @@ def editar_avaliacao(request, pk):
     })
 
 
+@login_required(login_url='login')
 def excluir_avaliacao(request, pk):
     avaliacao = get_object_or_404(Avaliacao, pk=pk)
     if request.method == 'POST':

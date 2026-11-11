@@ -134,6 +134,24 @@ p { max-width: 68ch; }
     text-shadow: 0 0 16px rgba(255, 122, 28, 0.6);
 }
 
+/* sair é POST (exigência do Django 5), então é um botão vestido de link */
+.secoes .sair { margin: 0; display: inline; }
+.secoes .sair button {
+    background: none;
+    border: 0;
+    padding: 0 0 3px;
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--recusa);
+    transition: color var(--beat) var(--saida);
+}
+.secoes .sair button:hover,
+.secoes .sair button:focus-visible { color: #ff5a3c; outline: none; }
+
 /* --- layout ------------------------------------------------------------- */
 
 main {
