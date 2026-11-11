@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Avaliacao, Diretor, Filme, Genero
+from .models import Ator, Avaliacao, Diretor, Elenco, Filme, Genero
 
 
 class GeneroForm(forms.ModelForm):
@@ -74,3 +74,41 @@ class AvaliacaoForm(forms.ModelForm):
         # filme alheio enviado à mão no POST falha na validação do campo.
         if usuario is not None:
             self.fields['filme'].queryset = Filme.objects.filter(usuario=usuario)
+
+
+class AtorForm(forms.ModelForm):
+    class Meta:
+        model = Ator
+        fields = ['nome', 'nacionalidade']
+        labels = {'nome': 'Nome', 'nacionalidade': 'Nacionalidade'}
+        widgets = {
+            'nome': forms.TextInput(attrs={'placeholder': 'Ex.: Fernanda Montenegro'}),
+            'nacionalidade': forms.TextInput(attrs={'placeholder': 'Ex.: Brasileira'}),
+        }
+
+
+class ElencoForm(forms.ModelForm):
+    """Coloca um ator no elenco de um filme (uma linha da tabela through)."""
+
+    class Meta:
+        model = Elenco
+        fields = ['ator', 'personagem', 'ordem']
+        labels = {'ator': 'Ator', 'personagem': 'Personagem', 'ordem': 'Ordem nos créditos'}
+        widgets = {
+            'personagem': forms.TextInput(attrs={'placeholder': 'Ex.: Capitão Nascimento'}),
+        }
+
+    def __init__(self, *args, filme=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filme = filme
+        self.fields['ator'].empty_label = 'Selecione um ator'
+
+    def clean_ator(self):
+        # O filme não é campo do formulário, então o ModelForm não confere a
+        # UniqueConstraint (filme, ator) sozinho. A checagem fica aqui.
+        ator = self.cleaned_data['ator']
+        if self.filme is not None:
+            repetido = Elenco.objects.filter(filme=self.filme, ator=ator).exclude(pk=self.instance.pk)
+            if repetido.exists():
+                raise forms.ValidationError('Este ator já está no elenco do filme.')
+        return ator

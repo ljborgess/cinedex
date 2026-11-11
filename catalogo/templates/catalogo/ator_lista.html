@@ -1,0 +1,34 @@
+{% extends 'catalogo/base.html' %}
+
+{% block titulo %}Atores · Catálogo de Filmes{% endblock %}
+
+{% block conteudo %}
+<div class="cabeca">
+    <h1>Atores</h1>
+    <div class="acoes">
+        <a href="{% url 'criar_ator' %}" class="acao acao-forte">Novo ator</a>
+    </div>
+</div>
+
+<div class="registros">
+    {% for ator in atores %}
+    <article class="registro">
+        <a href="{% url 'detalhe_ator' ator.pk %}" class="mosaico-link">
+            {% include 'catalogo/_mosaico.html' with filmes=ator.filmes.all total=ator.total_filmes %}
+        </a>
+        <h2><a href="{% url 'detalhe_ator' ator.pk %}">{{ ator.nome }}</a></h2>
+        <div><span class="atributo">{{ ator.nacionalidade }}</span></div>
+        <div class="medida-linha" style="margin-top:14px;">
+            <strong>{{ ator.total_filmes }}</strong> filme{{ ator.total_filmes|pluralize }}
+        </div>
+        <div class="acoes">
+            <a href="{% url 'detalhe_ator' ator.pk %}" class="acao">Abrir</a>
+            <a href="{% url 'editar_ator' ator.pk %}" class="acao">Editar</a>
+            <a href="{% url 'excluir_ator' ator.pk %}" class="acao acao-recusa">Excluir</a>
+        </div>
+    </article>
+    {% empty %}
+    <p class="vazio">Nenhum ator cadastrado</p>
+    {% endfor %}
+</div>
+{% endblock %}

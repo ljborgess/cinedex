@@ -47,12 +47,27 @@ class Diretor(models.Model):
         return self.nome
 
 
+class Ator(models.Model):
+    nome = models.CharField(max_length=100)
+    nacionalidade = models.CharField(max_length=60, blank=True)
+
+    class Meta:
+        verbose_name = 'ator'
+        verbose_name_plural = 'atores'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class Filme(models.Model):
     titulo = models.CharField(max_length=100)
     # PROTECT: um gênero ou diretor não pode ser apagado enquanto tiver filmes.
     genero = models.ForeignKey(Genero, on_delete=models.PROTECT, related_name='filmes')
     diretor = models.ForeignKey(Diretor, on_delete=models.PROTECT, related_name='filmes')
     sinopse = models.TextField(max_length=280)
+    # N:N com tabela intermediária: o Elenco guarda o personagem de cada ator.
+    atores = models.ManyToManyField(Ator, through='Elenco', related_name='filmes', blank=True)
     # Dono do registro: cada usuário só vê e altera os próprios filmes.
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='filmes'
@@ -71,6 +86,34 @@ class Filme(models.Model):
         if not notas:
             return None
         return sum(notas) / len(notas)
+
+
+class Elenco(models.Model):
+    """Tabela intermediária (through) da relação N:N entre Filme e Ator.
+
+    Existe como model próprio porque a ligação tem dados que não pertencem
+    nem ao filme nem ao ator: qual personagem ele fez e a ordem nos créditos.
+    """
+
+    # CASCADE: a participação só existe em função do filme.
+    filme = models.ForeignKey(Filme, on_delete=models.CASCADE, related_name='elenco')
+    # PROTECT: como o diretor, um ator com filmes não pode sumir do catálogo.
+    ator = models.ForeignKey(Ator, on_delete=models.PROTECT, related_name='participacoes')
+    personagem = models.CharField(max_length=100)
+    ordem = models.PositiveSmallIntegerField(
+        default=1, help_text='Posição nos créditos (1 = protagonista).'
+    )
+
+    class Meta:
+        verbose_name = 'participação no elenco'
+        verbose_name_plural = 'elenco'
+        ordering = ['ordem', 'ator__nome']
+        constraints = [
+            models.UniqueConstraint(fields=['filme', 'ator'], name='ator_unico_por_filme'),
+        ]
+
+    def __str__(self):
+        return f'{self.ator} como {self.personagem} em {self.filme}'
 
 
 class Avaliacao(models.Model):

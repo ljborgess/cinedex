@@ -18,7 +18,7 @@
     {% if detalhe %}<p class="meta" style="color:var(--osso-fraco);">{{ detalhe }}</p>{% endif %}
 
     <div class="acoes" style="margin-top:34px;">
-        <a href="{% url voltar_para %}" class="acao acao-forte">Voltar</a>
+        <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao acao-forte">Voltar</a>
     </div>
 {% else %}
     <div class="cabeca">
@@ -38,7 +38,7 @@
         {% csrf_token %}
         <div class="acoes" style="margin-top:14px;">
             <button type="submit" class="acao acao-recusa">Excluir definitivamente</button>
-            <a href="{% url voltar_para %}" class="acao">Cancelar</a>
+            <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao">Cancelar</a>
         </div>
     </form>
 {% endif %}

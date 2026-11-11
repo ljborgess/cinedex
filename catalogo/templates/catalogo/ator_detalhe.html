@@ -1,0 +1,36 @@
+{% extends 'catalogo/base.html' %}
+
+{% block titulo %}{{ ator.nome }} · Catálogo de Filmes{% endblock %}
+
+{% block conteudo %}
+<div class="cabeca">
+    <div>
+        <span class="rotulo">Elenco</span>
+        <h1>{{ ator.nome }}</h1>
+    </div>
+    <div class="acoes">
+        <a href="{% url 'editar_ator' ator.pk %}" class="acao">Editar</a>
+        <a href="{% url 'excluir_ator' ator.pk %}" class="acao acao-recusa">Excluir</a>
+    </div>
+</div>
+
+<div class="vinculos">
+    {% if ator.nacionalidade %}<span class="vinculo"><span>Nacionalidade</span>{{ ator.nacionalidade }}</span>{% endif %}
+    <span class="vinculo"><span>No seu catálogo</span>{{ participacoes|length }} filme{{ participacoes|length|pluralize }}</span>
+</div>
+
+<h2 class="faixa-titulo">Filmografia</h2>
+<div class="grade">
+    {% for participacao in participacoes %}
+    <a href="{% url 'detalhe_filme' participacao.filme.pk %}" class="cartaz" style="--ordem: {{ forloop.counter0 }}">
+        {% include 'catalogo/_capa.html' with filme=participacao.filme vt=1 %}
+        <div class="abaixo">
+            <span class="nome">{{ participacao.filme.titulo }}</span>
+        </div>
+        <span class="rotulo">como {{ participacao.personagem }}</span>
+    </a>
+    {% empty %}
+    <p class="vazio">Nenhum filme seu com este ator</p>
+    {% endfor %}
+</div>
+{% endblock %}

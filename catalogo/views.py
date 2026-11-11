@@ -1,9 +1,10 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
-from .forms import AvaliacaoForm, DiretorForm, FilmeForm, GeneroForm
-from .models import Avaliacao, Diretor, Filme, Genero
+from .forms import AtorForm, AvaliacaoForm, DiretorForm, ElencoForm, FilmeForm, GeneroForm
+from .models import Ator, Avaliacao, Diretor, Elenco, Filme, Genero
 
 # Regra de isolamento: Filme e Avaliacao têm dono. Toda consulta a eles parte
 # de `filmes_do(request)` / `avaliacoes_do(request)`, inclusive as que buscam
@@ -77,6 +78,7 @@ def detalhe_filme(request, pk):
     avaliacoes = filme.avaliacoes.all()
     return render(request, 'catalogo/filme_detalhe.html', {
         'filme': filme,
+        'elenco': filme.elenco.select_related('ator'),
         'avaliacoes': avaliacoes,
         'media': avaliacoes.aggregate(m=Avg('nota'))['m'],
         'do_mesmo_diretor': (
@@ -162,6 +164,131 @@ def excluir_filme(request, pk):
         'detalhe': f'{filme.genero} · {filme.diretor}',
         'aviso': 'As avaliações deste filme também serão excluídas.',
         'voltar_para': 'lista_filmes',
+    })
+
+
+# -------------------------------------------------------------------- elenco
+# Linhas da tabela through Filme <-> Ator. A posse é verificada pelo filme:
+# só o dono do filme mexe no elenco dele.
+
+def elenco_do(request):
+    return Elenco.objects.filter(filme__usuario=request.user).select_related('filme', 'ator')
+
+
+@login_required(login_url='login')
+def criar_elenco(request, pk):
+    filme = get_object_or_404(filmes_do(request), pk=pk)
+    form = ElencoForm(request.POST or None, filme=filme, initial={'ordem': filme.elenco.count() + 1})
+    if form.is_valid():
+        participacao = form.save(commit=False)
+        participacao.filme = filme
+        participacao.save()
+        return redirect('detalhe_filme', pk=filme.pk)
+    return render(request, 'catalogo/form.html', {
+        'form': form,
+        'titulo_pagina': f'Elenco de {filme.titulo}',
+        'voltar_url': reverse('detalhe_filme', args=[filme.pk]),
+    })
+
+
+@login_required(login_url='login')
+def editar_elenco(request, pk):
+    participacao = get_object_or_404(elenco_do(request), pk=pk)
+    form = ElencoForm(request.POST or None, instance=participacao, filme=participacao.filme)
+    if form.is_valid():
+        form.save()
+        return redirect('detalhe_filme', pk=participacao.filme_id)
+    return render(request, 'catalogo/form.html', {
+        'form': form,
+        'titulo_pagina': f'Editar: {participacao.ator} em {participacao.filme}',
+        'voltar_url': reverse('detalhe_filme', args=[participacao.filme_id]),
+    })
+
+
+@login_required(login_url='login')
+def excluir_elenco(request, pk):
+    participacao = get_object_or_404(elenco_do(request), pk=pk)
+    if request.method == 'POST':
+        participacao.delete()
+        return redirect('detalhe_filme', pk=participacao.filme_id)
+    return render(request, 'catalogo/confirmar_exclusao.html', {
+        'objeto': participacao,
+        'tipo': 'vínculo',
+        'detalhe': 'O ator sai do elenco deste filme, mas continua cadastrado.',
+        'voltar_url': reverse('detalhe_filme', args=[participacao.filme_id]),
+    })
+
+
+# -------------------------------------------------------------------- atores
+
+@login_required(login_url='login')
+def lista_atores(request):
+    meus = Q(filmes__usuario=request.user)
+    atores = Ator.objects.annotate(total_filmes=Count('filmes', filter=meus)).prefetch_related(
+        Prefetch('filmes', queryset=filmes_do(request).select_related('genero', 'diretor'))
+    )
+    return render(request, 'catalogo/ator_lista.html', {'atores': atores})
+
+
+@login_required(login_url='login')
+def detalhe_ator(request, pk):
+    ator = get_object_or_404(Ator, pk=pk)
+    participacoes = (
+        elenco_do(request).filter(ator=ator)
+        .select_related('filme__genero', 'filme__diretor')
+        .order_by('filme__titulo')
+    )
+    return render(request, 'catalogo/ator_detalhe.html', {
+        'ator': ator,
+        'participacoes': participacoes,
+    })
+
+
+@login_required(login_url='login')
+def criar_ator(request):
+    form = AtorForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('lista_atores')
+    return render(request, 'catalogo/form.html', {
+        'form': form,
+        'titulo_pagina': 'Novo ator',
+        'voltar_para': 'lista_atores',
+    })
+
+
+@login_required(login_url='login')
+def editar_ator(request, pk):
+    ator = get_object_or_404(Ator, pk=pk)
+    form = AtorForm(request.POST or None, instance=ator)
+    if form.is_valid():
+        form.save()
+        return redirect('lista_atores')
+    return render(request, 'catalogo/form.html', {
+        'form': form,
+        'titulo_pagina': f'Editar: {ator.nome}',
+        'voltar_para': 'lista_atores',
+    })
+
+
+@login_required(login_url='login')
+def excluir_ator(request, pk):
+    ator = get_object_or_404(Ator, pk=pk)
+    vinculos = ator.participacoes.count()
+
+    if request.method == 'POST' and vinculos == 0:
+        ator.delete()
+        return redirect('lista_atores')
+
+    return render(request, 'catalogo/confirmar_exclusao.html', {
+        'objeto': ator,
+        'tipo': 'ator',
+        'detalhe': ator.nacionalidade,
+        'bloqueio': (
+            f'Este ator está no elenco de {vinculos} filme(s) no sistema e não pode '
+            f'ser excluído enquanto fizer parte deles.'
+        ) if vinculos else '',
+        'voltar_para': 'lista_atores',
     })
 
 

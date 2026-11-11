@@ -29,7 +29,7 @@
 
     <div class="acoes" style="margin-top:38px;">
         <button type="submit" class="acao acao-forte">Salvar</button>
-        <a href="{% url voltar_para %}" class="acao">Voltar</a>
+        <a href="{% if voltar_url %}{{ voltar_url }}{% else %}{% url voltar_para %}{% endif %}" class="acao">Voltar</a>
     </div>
 </form>
 {% endblock %}

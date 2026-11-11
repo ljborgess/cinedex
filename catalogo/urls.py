@@ -12,6 +12,16 @@ urlpatterns = [
     path('filmes/<int:pk>/editar/', views.editar_filme, name='editar_filme'),
     path('filmes/<int:pk>/excluir/', views.excluir_filme, name='excluir_filme'),
 
+    path('filmes/<int:pk>/elenco/novo/', views.criar_elenco, name='criar_elenco'),
+    path('elenco/<int:pk>/editar/', views.editar_elenco, name='editar_elenco'),
+    path('elenco/<int:pk>/excluir/', views.excluir_elenco, name='excluir_elenco'),
+
+    path('atores/', views.lista_atores, name='lista_atores'),
+    path('atores/<int:pk>/', views.detalhe_ator, name='detalhe_ator'),
+    path('atores/novo/', views.criar_ator, name='criar_ator'),
+    path('atores/<int:pk>/editar/', views.editar_ator, name='editar_ator'),
+    path('atores/<int:pk>/excluir/', views.excluir_ator, name='excluir_ator'),
+
     path('diretores/', views.lista_diretores, name='lista_diretores'),
     path('diretores/<int:pk>/', views.detalhe_diretor, name='detalhe_diretor'),
     path('diretores/novo/', views.criar_diretor, name='criar_diretor'),

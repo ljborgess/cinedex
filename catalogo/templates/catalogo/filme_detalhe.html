@@ -37,6 +37,28 @@
     </div>
 </div>
 
+<div class="cabeca" style="margin-bottom:0;">
+    <h2 class="faixa-titulo">Elenco</h2>
+    <div class="acoes">
+        <a href="{% url 'criar_elenco' filme.pk %}" class="acao">Adicionar ator</a>
+    </div>
+</div>
+<div class="registros">
+    {% for participacao in elenco %}
+    <article class="registro">
+        <span class="atributo">{{ participacao.ordem|stringformat:"02d" }}</span>
+        <h2><a href="{% url 'detalhe_ator' participacao.ator.pk %}">{{ participacao.ator }}</a></h2>
+        <div class="medida-linha">como <strong>{{ participacao.personagem }}</strong></div>
+        <div class="acoes">
+            <a href="{% url 'editar_elenco' participacao.pk %}" class="acao">Editar</a>
+            <a href="{% url 'excluir_elenco' participacao.pk %}" class="acao acao-recusa">Remover</a>
+        </div>
+    </article>
+    {% empty %}
+    <p class="vazio">Nenhum ator no elenco</p>
+    {% endfor %}
+</div>
+
 <h2 class="faixa-titulo">Avaliações deste filme</h2>
 {% for avaliacao in avaliacoes %}
 <div class="avaliacao-linha">
