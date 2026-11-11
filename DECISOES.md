@@ -184,3 +184,57 @@ Cada filme ganha uma capa desenhada em SVG/CSS: o título na fonte condensada so
 A página lista as avaliações e leva ao formulário por link.
 
 **Por quê:** decisão do usuário. O formulário embutido tornaria a demonstração mais fluida (avaliar e ver a média mudar na hora), mas foi recusado em favor de menos código.
+
+---
+
+# Versão final — requisitos mínimos do projeto
+
+Contexto: o comunicado da disciplina fixou os requisitos mínimos (apps separados, área pública e restrita, isolamento por usuário, CSRF, 5 models com 1:N, 1:1 e N:N through, 2 CRUDs, dashboard, consultas com relatório e 3 testes).
+
+## 24. App `usuarios` separado do `catalogo`
+
+Login, cadastro e perfil ficam num app próprio; o `catalogo` fica só com as entidades de negócio.
+
+**Por quê:** é a separação por domínio pedida no comunicado. O nome `core` já é o pacote de configuração do projeto, então o app de autenticação se chama `usuarios`.
+
+**Descartado:** colocar o login dentro do `catalogo`.
+
+## 25. Perfil como a relação 1:1
+
+`Perfil` tem `OneToOneField` para o `User` do Django, com apelido, bio e gênero favorito. Um signal cria o perfil de todo usuário novo.
+
+**Por quê:** é o uso clássico do 1:1 — estender o usuário sem trocar o model de autenticação. O signal garante o perfil também para quem é criado pelo `createsuperuser`.
+
+**Descartado:** `AbstractUser` customizado; exigiria recomeçar as migrations de auth no meio do projeto.
+
+## 26. Dono em Filme e Avaliação; Gênero, Diretor e Ator compartilhados
+
+Filme e Avaliação têm o campo `usuario`. Elenco herda a posse do filme. Gênero, Diretor e Ator não têm dono.
+
+**Por quê:** o catálogo pessoal é o que pertence ao usuário. "Drama" ou "Christopher Nolan" são dados de referência; duplicá-los por usuário criaria dez "Drama" diferentes no banco. Mesmo nessas telas, os filmes listados passam pelo filtro do usuário.
+
+**Descartado:** dono em todas as tabelas — mais isolamento, mas a mesma pessoa teria de recadastrar diretores e atores que já existem.
+
+## 27. Seed atribuído a uma conta `demo`
+
+A migration 0004 cria o usuário `demo` (senha `filmes123`) e passa para ele os filmes e avaliações das migrations 0002 e 0003, antes de o campo `usuario` ficar obrigatório.
+
+**Por quê:** o seed já existia sem dono. Sem essa conta, quem roda `migrate` teria um banco com dados que ninguém consegue ver.
+
+## 28. N:N Filme ↔ Ator através de `Elenco`
+
+`Elenco` guarda o personagem e a ordem nos créditos, com `UniqueConstraint` em (filme, ator). O elenco é editado a partir da página do filme.
+
+**Por quê:** o personagem é um dado da ligação, não do filme nem do ator — exatamente o caso que justifica um `through`. Como o filme não é campo do formulário, o `ElencoForm` confere a unicidade no `clean_ator`.
+
+## 29. Home pública em `/`, painel em `/dashboard/`
+
+**Por quê:** o comunicado exige uma Home navegável sem login, e o painel mostra dados do usuário, então precisa ser restrito.
+
+## 30. Consultas por GET e relatório em CSV
+
+Os filtros vão na query string; **Exportar CSV** reaproveita a mesma query com `formato=csv`.
+
+**Por quê:** GET deixa a busca compartilhável e garante que o relatório exportado seja exatamente o que está na tela. O CSV sai com BOM e ponto e vírgula para abrir certo no Excel em português.
+
+**Descartado:** PDF — exigiria uma biblioteca a mais (reportlab ou weasyprint) sem ganho para o requisito.
