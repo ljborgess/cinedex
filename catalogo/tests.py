@@ -2,13 +2,17 @@ from io import StringIO
 from unittest import mock
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.management import call_command
 from django.db import IntegrityError
+from django.db.models import ProtectedError
 from django.test import TestCase
 from django.urls import reverse
 
+from usuarios import limite
 from usuarios.models import Perfil
 
+from .forms import ElencoForm
 from .models import Ator, Avaliacao, Diretor, Elenco, Filme, Genero
 
 
@@ -218,3 +222,95 @@ class ProntoParaApresentarTeste(TestCase):
         resposta = self.client.get(reverse('lista_atores'))
         self.assertContains(resposta, 'Keanu Reeves')
         self.assertNotContains(resposta, 'Cillian Murphy')
+
+
+class SegurancaTeste(BaseTeste):
+    """Itens do checklist de segurança aplicados ao projeto (ver AUDITORIA.md)."""
+
+    def setUp(self):
+        cache.clear()  # o contador de tentativas vive no cache e não pode vazar entre testes
+
+    def test_login_bloqueia_depois_de_cinco_senhas_erradas(self):
+        for _ in range(limite.LIMITE):
+            self.client.post(reverse('login'), {'username': 'teste_ana', 'password': 'errada'})
+        # Bloqueado: nem a senha certa entra, e a mensagem não diz se a conta existe.
+        resposta = self.client.post(
+            reverse('login'), {'username': 'teste_ana', 'password': 'senha-da-ana-123'}
+        )
+        self.assertContains(resposta, 'Muitas tentativas')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_login_certo_nao_gasta_tentativa(self):
+        for _ in range(limite.LIMITE + 1):
+            self.client.post(reverse('logout'))
+            self.client.post(reverse('login'), {'username': 'teste_ana', 'password': 'senha-da-ana-123'})
+        self.assertIn('_auth_user_id', self.client.session)
+
+    def test_cadastro_limita_contas_por_ip(self):
+        for indice in range(limite.LIMITE + 1):
+            self.client.post(reverse('cadastro'), {
+                'username': f'robo{indice}', 'password1': 'Senha-forte-123', 'password2': 'Senha-forte-123',
+            })
+            self.client.post(reverse('logout'))
+        self.assertEqual(User.objects.filter(username__startswith='robo').count(), limite.LIMITE)
+
+    def test_login_do_admin_tambem_tem_limite(self):
+        User.objects.create_superuser('teste_admin', password='senha-do-admin-123')
+        for _ in range(limite.LIMITE):
+            self.client.post(reverse('admin:login'), {'username': 'teste_admin', 'password': 'errada'})
+        resposta = self.client.post(
+            reverse('admin:login'), {'username': 'teste_admin', 'password': 'senha-do-admin-123'}
+        )
+        self.assertContains(resposta, 'Muitas tentativas')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_filtros_da_consulta_nao_mostram_ator_de_outra_conta(self):
+        so_do_bruno = Ator.objects.create(nome='Ator Só do Bruno')
+        Elenco.objects.create(filme=self.filme_bruno, ator=so_do_bruno, personagem='X')
+        self.client.force_login(self.ana)
+        opcoes = self.client.get(reverse('consulta')).context['form'].fields['ator'].queryset
+        self.assertNotIn(so_do_bruno, opcoes)
+
+    def test_vitrine_so_usa_capas_da_wikimedia(self):
+        # A `demo` do seed já tem capas da Wikimedia; o intruso é um link qualquer.
+        demo = User.objects.get(username='demo')
+        Filme.objects.create(
+            titulo='Intruso', genero=self.genero, diretor=self.diretor,
+            sinopse='...', usuario=demo, capa_url='https://exemplo.com/qualquer.jpg',
+        )
+        self.assertNotContains(self.client.get(reverse('home')), 'exemplo.com')
+
+    def test_csv_neutraliza_formula_no_titulo(self):
+        Filme.objects.filter(pk=self.filme_ana.pk).update(titulo='=HYPERLINK("http://x")')
+        self.client.force_login(self.ana)
+        conteudo = self.client.get(reverse('consulta'), {'formato': 'csv'}).content.decode('utf-8-sig')
+        self.assertIn('\'=HYPERLINK(""http://x"")', conteudo)
+
+    def test_resposta_traz_content_security_policy(self):
+        politica = self.client.get(reverse('home'))['Content-Security-Policy']
+        self.assertIn("frame-ancestors 'none'", politica)
+        self.assertIn("object-src 'none'", politica)
+
+    def test_elenco_repetido_por_corrida_vira_erro_e_nao_500(self):
+        # Simula dois envios simultâneos: a checagem do formulário deixa passar,
+        # e quem barra é a UniqueConstraint do banco.
+        ator = Ator.objects.create(nome='Ator Corrida')
+        Elenco.objects.create(filme=self.filme_ana, ator=ator, personagem='A')
+        self.client.force_login(self.ana)
+        with mock.patch.object(ElencoForm, 'clean_ator', lambda form: form.cleaned_data['ator']):
+            resposta = self.client.post(
+                reverse('criar_elenco', args=[self.filme_ana.pk]),
+                {'ator': ator.pk, 'personagem': 'B', 'ordem': 2},
+            )
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn('ator', resposta.context['form'].errors)
+        self.assertEqual(self.filme_ana.elenco.count(), 1)
+
+    def test_exclusao_barrada_pelo_protect_volta_para_a_confirmacao(self):
+        # Outra conta liga um filme ao diretor entre a contagem e o delete.
+        livre = Diretor.objects.create(nome='Sem Filmes', nacionalidade='X')
+        self.client.force_login(self.ana)
+        with mock.patch.object(Diretor, 'delete', side_effect=ProtectedError('vinculado', set())):
+            resposta = self.client.post(reverse('excluir_diretor', args=[livre.pk]))
+        self.assertRedirects(resposta, reverse('excluir_diretor', args=[livre.pk]))
+        self.assertTrue(Diretor.objects.filter(pk=livre.pk).exists())

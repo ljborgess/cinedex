@@ -61,9 +61,9 @@ class Ator(models.Model):
 
 
 class Filme(models.Model):
-    titulo = models.CharField(max_length=100)
+    titulo = models.CharField('título', max_length=100)
     # PROTECT: um gênero ou diretor não pode ser apagado enquanto tiver filmes.
-    genero = models.ForeignKey(Genero, on_delete=models.PROTECT, related_name='filmes')
+    genero = models.ForeignKey(Genero, verbose_name='gênero', on_delete=models.PROTECT, related_name='filmes')
     diretor = models.ForeignKey(Diretor, on_delete=models.PROTECT, related_name='filmes')
     sinopse = models.TextField(max_length=280)
     # Só o endereço da imagem; o arquivo não fica no projeto. Vazio = capa autoral.
@@ -72,7 +72,7 @@ class Filme(models.Model):
     atores = models.ManyToManyField(Ator, through='Elenco', related_name='filmes', blank=True)
     # Dono do registro: cada usuário só vê e altera os próprios filmes.
     usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='filmes'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='filmes', verbose_name='dono'
     )
 
     class Meta:
@@ -80,14 +80,6 @@ class Filme(models.Model):
 
     def __str__(self):
         return self.titulo
-
-    @property
-    def media_nota(self):
-        """Média das notas do filme, ou None se ainda não foi avaliado."""
-        notas = [avaliacao.nota for avaliacao in self.avaliacoes.all()]
-        if not notas:
-            return None
-        return sum(notas) / len(notas)
 
 
 class Elenco(models.Model):
@@ -126,10 +118,10 @@ class Avaliacao(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         help_text='De 1 a 5 estrelas.',
     )
-    comentario = models.TextField(max_length=280, blank=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
+    comentario = models.TextField('comentário', max_length=280, blank=True)
+    criado_em = models.DateTimeField('criada em', auto_now_add=True)
     usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avaliacoes'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='avaliacoes', verbose_name='dono'
     )
 
     class Meta:

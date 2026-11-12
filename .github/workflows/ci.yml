@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nada aqui escreve no repositório: só lê, instala e testa.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      # Action presa por hash de commit: uma tag pode ser movida, o hash não.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Python do próprio runner: uma action a menos para confiar.
+      - run: python3 -m venv venv && venv/bin/pip install -q -r requirements.txt pip-audit
+
+      # Dependência vulnerável entra pelo requirements.txt, não pelo código do PR.
+      - run: venv/bin/pip-audit -r requirements.txt
+
+      # Model alterado sem migration só quebra no banco de quem baixar o projeto.
+      - run: venv/bin/python manage.py makemigrations --check --dry-run
+
+      - run: venv/bin/python manage.py test
+
+      # Prova que o modo produção sobe com HTTPS, cookies seguros e HSTS.
+      # A chave é descartável e só existe neste runner.
+      - run: venv/bin/python manage.py check --deploy --fail-level WARNING
+        env:
+          DJANGO_DEBUG: '0'
+          DJANGO_SECRET_KEY: ci-chave-descartavel-que-nao-serve-fora-daqui-0123456789abcdef
+          DJANGO_ALLOWED_HOSTS: exemplo.com
