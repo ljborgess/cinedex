@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% comment %}
+O /admin/ veste o mundo "Cátodo Velado" do site: fundo tinta, laranja de cátodo,
+osso para prosa, Saira Condensed nos títulos. O Django admin é todo montado
+sobre variáveis CSS, então trocar as variáveis em admin.css refaz o visual sem
+copiar nenhum template do admin.
+
+O site só tem tema escuro, então o seletor claro/escuro do admin sai.
+{% endcomment %}
+
+{% block dark-mode-vars %}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'catalogo/admin.css' %}">
+<meta name="theme-color" content="#070a12">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+    <a href="{% url 'admin:index' %}" class="marca">
+        <span class="marca-golpe">Catálogo</span>
+        <span class="marca-fantasma">Administração</span>
+    </a>
+</div>
+{% endblock %}

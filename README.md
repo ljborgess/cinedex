@@ -4,6 +4,42 @@ Filmoteca pessoal em Django: cada usuário cadastra os próprios filmes, monta o
 
 Continuação dos trabalhos anteriores (2 models → 4 models → versão final).
 
+## Como ficou
+
+**Início** (público): parede de cartazes e a chamada para entrar.
+
+![Início](docs/telas/inicio.jpg)
+
+**Painel**: o filme de maior média em destaque, com as contagens do catálogo logo abaixo.
+
+![Painel](docs/telas/painel.jpg)
+
+**Filmes**: grade de capas reais, buscadas na Wikipédia.
+
+![Lista de filmes](docs/telas/filmes.jpg)
+
+**Página do filme**: nota, sinopse, ações, elenco, avaliações e onde assistir.
+
+![Página do filme](docs/telas/filme.jpg)
+
+**Consultas**: filtros por título, gênero, diretor, ator e média, com exportação em CSV.
+
+![Consultas](docs/telas/consultas.jpg)
+
+**Exclusão bloqueada**: o `PROTECT` explicado, sem tela de erro.
+
+![Exclusão bloqueada](docs/telas/exclusao-bloqueada.jpg)
+
+**Admin** (`/admin/`): o painel do Django com o mesmo visual do site.
+
+![Login do admin](docs/telas/admin-login.jpg)
+
+![Admin](docs/telas/admin.jpg)
+
+![Admin: filmes](docs/telas/admin-filmes.jpg)
+
+![Admin: editar filme](docs/telas/admin-filme.jpg)
+
 ## Stack
 
 - Django 5.2
@@ -87,7 +123,7 @@ A página de cada filme tem atalhos que abrem a busca do título no Netflix, Pri
 python manage.py test
 ```
 
-São 23 testes em `catalogo/tests.py`: acesso público e restrito, isolamento entre usuários, dashboard, CSV, relacionamentos, capas e onde assistir. A classe `ProntoParaApresentarTeste` confere que um banco criado só com `migrate` já vem pronto: contas `demo`, `ana` e `admin`, elenco em todos os filmes e as páginas principais abrindo.
+São 33 testes em `catalogo/tests.py`: acesso público e restrito, isolamento entre usuários, dashboard, CSV, relacionamentos, capas, onde assistir e segurança (limite de tentativas no site e no admin, CSP, CSV sem fórmula, filtros sem dado de outra conta, vitrine só com capas da Wikimedia e corridas no banco). O CI do GitHub roda os mesmos testes em todo PR, junto com `pip-audit`, `makemigrations --check` e `check --deploy`. A classe `ProntoParaApresentarTeste` confere que um banco criado só com `migrate` já vem pronto: contas `demo`, `ana` e `admin`, elenco em todos os filmes e as páginas principais abrindo.
 
 ## Apps
 
@@ -147,6 +183,20 @@ Diretor ─1:N──┘      │
 - **Área pública vs. restrita:** só a Home (`/`), `/login/` e `/cadastro/` abrem sem login. Todas as outras views têm `@login_required(login_url='login')`, e `LOGIN_URL = 'login'` está no `settings.py`. Quem tenta abrir uma tela interna é mandado para `/login/?next=...` e volta para ela depois de entrar.
 - **Isolamento de dados:** toda consulta de `Filme`, `Avaliacao` e `Elenco` parte de `request.user` (funções `filmes_do`, `avaliacoes_do` e `elenco_do` em `catalogo/views.py`), inclusive as buscas por `pk`. Um id de outro usuário digitado na URL retorna 404. O dono é gravado a partir da sessão no `save`, nunca a partir do formulário, e o `AvaliacaoForm` só aceita filmes do próprio usuário.
 - **CSRF:** todos os formulários POST têm `{% csrf_token %}`, inclusive o botão **Sair** (no Django 5 o logout é por POST).
+- **Limite de tentativas:** 5 senhas erradas ou 5 contas criadas pelo mesmo IP bloqueiam por 15 minutos (`usuarios/limite.py`). Vale também para o login do `/admin/`. Rodando local, todo acesso vem de `127.0.0.1` e divide o mesmo contador: se o bloqueio aparecer durante a apresentação, `Ctrl+C` e `rodar.bat` de novo zeram tudo.
+- **Senhas:** guardadas como hash `pbkdf2_sha256` com salt e 1.000.000 de iterações (padrão do Django), inclusive as das contas do seed.
+- **Cabeçalhos:** `Content-Security-Policy` em todas as respostas (`core/middleware.py`); em produção, também HTTPS obrigatório, cookies `Secure` e HSTS.
+- **Segredos:** `SECRET_KEY` e `DEBUG` vêm do ambiente. Sem variável nenhuma, o projeto roda em modo de desenvolvimento. Para produção:
+
+  ```bash
+  DJANGO_DEBUG=0
+  DJANGO_SECRET_KEY=<python -c "import secrets; print(secrets.token_urlsafe(50))">
+  DJANGO_ALLOWED_HOSTS=meudominio.com
+  ```
+
+  Antes de publicar, troque as senhas das contas do seed (`python manage.py changepassword admin`).
+
+A revisão completa pelo checklist de segurança está em [AUDITORIA.md](AUDITORIA.md).
 
 Gênero, Diretor e Ator são tabelas de referência compartilhadas (o mesmo "Drama" serve para todos), mas os filmes exibidos dentro delas também passam pelo filtro do usuário. Ver [DECISOES.md](DECISOES.md), item 26.
 
@@ -164,7 +214,7 @@ Gênero, Diretor e Ator são tabelas de referência compartilhadas (o mesmo "Dra
 | `/diretores/` | restrito | CRUD de diretores |
 | `/generos/` | restrito | CRUD de gêneros |
 | `/avaliacoes/` | restrito | CRUD de avaliações |
-| `/admin/` | staff | painel administrativo do Django |
+| `/admin/` | staff | painel administrativo do Django, com o visual do site (`templates/admin/`, `catalogo/static/catalogo/admin.css`) |
 
 Os CRUDs seguem o mesmo padrão de rotas: `/`, `/novo/`, `/<pk>/`, `/<pk>/editar/` e `/<pk>/excluir/`. Todos os formulários são `ModelForm`, menos o de filtros da consulta, que é um `Form` comum porque não grava nada.
 
@@ -172,7 +222,9 @@ Os CRUDs seguem o mesmo padrão de rotas: `/`, `/novo/`, `/<pk>/`, `/<pk>/editar
 
 ```
 core/                        configurações e rotas do projeto
+  middleware.py              Content-Security-Policy
 usuarios/
+  limite.py                  limite de tentativas no login e no cadastro
   models.py                  Perfil (1:1 com User)
   signals.py                 cria o Perfil de todo usuário novo
   forms.py                   CadastroForm, PerfilForm
@@ -201,6 +253,8 @@ catalogo/
     filme_detalhe.html       página do filme
     form.html                formulário compartilhado por todos os ModelForms
     confirmar_exclusao.html  confirmação compartilhada
+templates/admin/             base_site.html: veste o /admin/ com o visual do site
+docs/telas/                  prints das telas usados neste README
 rodar.bat                    prepara e sobe tudo em um comando
 ```
 

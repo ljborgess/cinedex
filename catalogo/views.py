@@ -3,7 +3,8 @@ from urllib.parse import quote
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg, Count, F, Prefetch, Q
+from django.db import IntegrityError, transaction
+from django.db.models import Avg, Count, F, Prefetch, ProtectedError, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -30,6 +31,20 @@ def _filmes(n):
     return f'{n} filme' if n == 1 else f'{n} filmes'
 
 
+def _excluiu(registro):
+    """Exclui gênero, diretor ou ator; False se o PROTECT do banco barrar.
+
+    A view conta os vínculos antes, mas outra conta pode ligar um filme ao
+    registro entre a contagem e o delete. Nesse caso a view volta para a
+    confirmação, que recontou e mostra o bloqueio em vez de uma página 500.
+    """
+    try:
+        registro.delete()
+    except ProtectedError:
+        return False
+    return True
+
+
 def filmes_do(request):
     return Filme.objects.filter(usuario=request.user)
 
@@ -48,11 +63,12 @@ def home(request):
 # A parede de cartazes da página inicial usa só as capas da conta de
 # demonstração: o catálogo de cada usuário continua invisível para os outros.
 CONTA_DA_VITRINE = 'demo'
+WIKIMEDIA = 'https://upload.wikimedia.org/wikipedia/'
 
 
 def _miniatura(url, largura=330):
     """Troca o arquivo original da Wikimedia pela miniatura, três vezes mais leve."""
-    prefixo = 'https://upload.wikimedia.org/wikipedia/'
+    prefixo = WIKIMEDIA
     if not url.startswith(prefixo) or '/thumb/' in url:
         return url
     projeto, resto = url[len(prefixo):].split('/', 1)
@@ -61,9 +77,11 @@ def _miniatura(url, largura=330):
 
 
 def _fileiras_da_vitrine(quantas=4, por_fileira=16):
+    # Só capas da Wikimedia: a senha da `demo` é pública, então qualquer pessoa
+    # pode colar um link no filme dela. Sem esse filtro, a imagem que ela
+    # escolhesse apareceria no início do site para todos os visitantes.
     capas = list(
-        Filme.objects.filter(usuario__username=CONTA_DA_VITRINE)
-        .exclude(capa_url='')
+        Filme.objects.filter(usuario__username=CONTA_DA_VITRINE, capa_url__startswith=WIKIMEDIA)
         .order_by('pk')
         .values_list('capa_url', flat=True)
     )
@@ -145,7 +163,7 @@ def filtrar_filmes(request, dados):
 
 @login_required(login_url='login')
 def consulta(request):
-    form = ConsultaForm(request.GET or None)
+    form = ConsultaForm(request.GET or None, usuario=request.user)
     dados = form.cleaned_data if form.is_valid() else {}
     filmes = filtrar_filmes(request, dados).prefetch_related('atores')
 
@@ -170,6 +188,16 @@ def _query_com(request, **extras):
     return query.urlencode()
 
 
+def _celula(texto):
+    """Texto digitado pelo usuário, seguro para abrir no Excel.
+
+    Uma célula que começa com = + - @ é lida como fórmula: um título como
+    `=HYPERLINK(...)` viraria link clicável no relatório. O apóstrofo na frente
+    faz o Excel mostrar o conteúdo como texto.
+    """
+    return "'" + texto if texto[:1] in ('=', '+', '-', '@', '\t', '\r') else texto
+
+
 def exportar_csv(filmes):
     resposta = HttpResponse(content_type='text/csv; charset=utf-8')
     resposta['Content-Disposition'] = 'attachment; filename="relatorio_filmes.csv"'
@@ -179,10 +207,10 @@ def exportar_csv(filmes):
     escritor.writerow(['Título', 'Gênero', 'Diretor', 'Elenco', 'Avaliações', 'Média'])
     for filme in filmes:
         escritor.writerow([
-            filme.titulo,
-            filme.genero.nome,
-            filme.diretor.nome,
-            ', '.join(ator.nome for ator in filme.atores.all()),
+            _celula(filme.titulo),
+            _celula(filme.genero.nome),
+            _celula(filme.diretor.nome),
+            _celula(', '.join(ator.nome for ator in filme.atores.all())),
             filme.total_avaliacoes,
             f'{filme.media:.1f}'.replace('.', ',') if filme.media is not None else '',
         ])
@@ -338,6 +366,22 @@ def elenco_do(request):
     return Elenco.objects.filter(filme__usuario=request.user).select_related('filme', 'ator')
 
 
+def _salvou_sem_repetir(form, participacao):
+    """Grava a participação; se o ator já entrou no filme, vira erro do formulário.
+
+    O `clean_ator` já recusa o repetido, mas dois envios simultâneos (duplo
+    clique) passam juntos pela checagem. Quem decide no fim é a
+    UniqueConstraint do banco, e o erro dela não pode virar página 500.
+    """
+    try:
+        with transaction.atomic():
+            participacao.save()
+    except IntegrityError:
+        form.add_error('ator', 'Este ator já está no elenco do filme.')
+        return False
+    return True
+
+
 @login_required(login_url='login')
 def criar_elenco(request, pk):
     filme = get_object_or_404(filmes_do(request), pk=pk)
@@ -345,8 +389,8 @@ def criar_elenco(request, pk):
     if form.is_valid():
         participacao = form.save(commit=False)
         participacao.filme = filme
-        participacao.save()
-        return redirect('detalhe_filme', pk=filme.pk)
+        if _salvou_sem_repetir(form, participacao):
+            return redirect('detalhe_filme', pk=filme.pk)
     return render(request, 'catalogo/form.html', {
         'form': form,
         'titulo_pagina': f'Elenco de {filme.titulo}',
@@ -358,8 +402,7 @@ def criar_elenco(request, pk):
 def editar_elenco(request, pk):
     participacao = get_object_or_404(elenco_do(request), pk=pk)
     form = ElencoForm(request.POST or None, instance=participacao, filme=participacao.filme)
-    if form.is_valid():
-        form.save()
+    if form.is_valid() and _salvou_sem_repetir(form, form.instance):
         return redirect('detalhe_filme', pk=participacao.filme_id)
     return render(request, 'catalogo/form.html', {
         'form': form,
@@ -451,8 +494,9 @@ def excluir_ator(request, pk):
     vinculos = ator.participacoes.count()
 
     if request.method == 'POST' and vinculos == 0:
-        ator.delete()
-        return redirect('lista_atores')
+        if _excluiu(ator):
+            return redirect('lista_atores')
+        return redirect('excluir_ator', pk=ator.pk)
 
     return render(request, 'catalogo/confirmar_exclusao.html', {
         'objeto': ator,
@@ -535,8 +579,9 @@ def excluir_diretor(request, pk):
     filmes_vinculados = diretor.filmes.count()
 
     if request.method == 'POST' and filmes_vinculados == 0:
-        diretor.delete()
-        return redirect('lista_diretores')
+        if _excluiu(diretor):
+            return redirect('lista_diretores')
+        return redirect('excluir_diretor', pk=diretor.pk)
 
     return render(request, 'catalogo/confirmar_exclusao.html', {
         'objeto': diretor,
@@ -597,8 +642,9 @@ def excluir_genero(request, pk):
     filmes_vinculados = genero.filmes.count()
 
     if request.method == 'POST' and filmes_vinculados == 0:
-        genero.delete()
-        return redirect('lista_generos')
+        if _excluiu(genero):
+            return redirect('lista_generos')
+        return redirect('excluir_genero', pk=genero.pk)
 
     return render(request, 'catalogo/confirmar_exclusao.html', {
         'objeto': genero,

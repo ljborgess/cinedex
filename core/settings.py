@@ -10,22 +10,28 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# Segredo e modo de execução vêm do ambiente (checklist de segurança, itens 1 e 2).
+# Sem variável nenhuma, o projeto roda em modo de desenvolvimento, como antes:
+# `rodar.bat` e `manage.py runserver` continuam funcionando sem configurar nada.
+DEBUG = os.environ.get('DJANGO_DEBUG', '1') == '1'
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-39l)7^g(cyj8-qoey+8$j5nvi&7&-^_r=k%7yi1%u8txpffs1y'
+# A chave antiga ficou no histórico do git e não vale mais como segredo: serve só
+# para desenvolvimento. Fora dele, a chave é obrigatória e o servidor nem sobe sem ela.
+_CHAVE_DE_DESENVOLVIMENTO = 'django-insecure-somente-para-desenvolvimento-local'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _CHAVE_DE_DESENVOLVIMENTO if DEBUG else '')
+if not SECRET_KEY:
+    raise ImproperlyConfigured('Defina DJANGO_SECRET_KEY quando DJANGO_DEBUG=0.')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h]
 
 
 # Application definition
@@ -49,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.politica_de_conteudo',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -56,7 +63,8 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # templates/admin/ veste o /admin/ com o visual do site.
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -129,3 +137,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
+
+
+# Produção (DJANGO_DEBUG=0): HTTPS obrigatório e cookies só por HTTPS
+# (checklist, itens 9 e 18). `manage.py check --deploy` passa limpo nesse modo.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Atrás de proxy que termina o TLS (Render, Railway, Nginx), o Django só
+    # sabe que a conexão é HTTPS por este cabeçalho.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

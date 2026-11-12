@@ -149,3 +149,13 @@ class ConsultaForm(forms.Form):
         choices=[('', 'Qualquer')] + [(n, f'{n} ou mais') for n in range(1, 6)],
     )
     ordenar = forms.ChoiceField(label='Ordenar por', choices=ORDENACOES, required=False)
+
+    def __init__(self, *args, usuario, **kwargs):
+        super().__init__(*args, **kwargs)
+        # As opções saem só do catálogo de quem consulta: listar todos os atores
+        # mostraria nomes que só existem no catálogo de outra conta, e filtrar
+        # por eles nunca traria resultado.
+        meus = {'filmes__usuario': usuario}
+        self.fields['genero'].queryset = Genero.objects.filter(**meus).distinct()
+        self.fields['diretor'].queryset = Diretor.objects.filter(**meus).distinct()
+        self.fields['ator'].queryset = Ator.objects.filter(**meus).distinct()

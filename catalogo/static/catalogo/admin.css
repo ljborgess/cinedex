@@ -1,0 +1,207 @@
+/* ==========================================================================
+   /admin/ no mundo "Cátodo Velado"
+   O admin do Django é montado sobre variáveis CSS: trocá-las aqui refaz o
+   visual inteiro sem copiar templates. Mesmas cores e fontes do style.css.
+   ========================================================================== */
+
+:root,
+:root[data-theme] {
+    --fundo: #070a12;
+    --fundo-fundo: #04060c;
+    --golpe: #ff7a1c;
+    --golpe-claro: #ffa257;
+    --osso: #efe7da;
+    --osso-fraco: rgba(239, 231, 218, 0.62);
+    --fantasma: rgba(226, 214, 196, 0.22);
+    --linha: rgba(226, 214, 196, 0.1);
+
+    --primary: var(--golpe);
+    --secondary: var(--fundo-fundo);
+    --accent: var(--golpe);
+    --primary-fg: var(--fundo);
+
+    --body-fg: var(--osso);
+    --body-bg: var(--fundo);
+    --body-quiet-color: var(--osso-fraco);
+    --body-medium-color: var(--osso);
+    --body-loud-color: #fff;
+
+    --header-color: var(--osso-fraco);
+    --header-branding-color: var(--golpe);
+    --header-bg: transparent;
+    --header-link-color: var(--osso);
+
+    --breadcrumbs-fg: var(--osso-fraco);
+    --breadcrumbs-link-fg: var(--osso);
+    --breadcrumbs-bg: transparent;
+
+    --link-fg: var(--golpe);
+    --link-hover-color: var(--golpe-claro);
+    --link-selected-fg: var(--golpe-claro);
+
+    --hairline-color: var(--linha);
+    --border-color: var(--fantasma);
+
+    --error-fg: #ff5a3c;
+    --message-success-bg: rgba(255, 122, 28, 0.1);
+    --message-warning-bg: rgba(255, 162, 87, 0.1);
+    --message-error-bg: rgba(255, 90, 60, 0.12);
+
+    --darkened-bg: rgba(255, 255, 255, 0.025);
+    --selected-bg: rgba(255, 122, 28, 0.12);
+    --selected-row: rgba(255, 122, 28, 0.08);
+
+    --button-fg: var(--fundo);
+    --button-bg: var(--golpe);
+    --button-hover-bg: var(--golpe-claro);
+    --default-button-bg: var(--golpe);
+    --default-button-hover-bg: var(--golpe-claro);
+    --close-button-bg: rgba(239, 231, 218, 0.16);
+    --close-button-hover-bg: rgba(239, 231, 218, 0.28);
+    --delete-button-bg: transparent;
+    --delete-button-hover-bg: rgba(255, 90, 60, 0.16);
+
+    --object-tools-fg: var(--golpe);
+    --object-tools-bg: transparent;
+    --object-tools-hover-bg: rgba(255, 122, 28, 0.12);
+
+    --font-family-primary: 'Barlow', system-ui, sans-serif;
+    color-scheme: dark;
+}
+
+body,
+body.login {
+    background:
+        radial-gradient(ellipse 70% 50% at 72% 14%, rgba(255, 122, 28, 0.11), transparent 68%),
+        var(--fundo);
+    background-attachment: fixed;
+}
+
+::selection { background: var(--golpe); color: var(--fundo); }
+:focus-visible { outline: 2px solid var(--golpe); outline-offset: 2px; }
+
+/* --- títulos condensados, como no site ---------------------------------- */
+
+#site-name .marca { display: inline-flex; gap: 0.45em; align-items: baseline; }
+#site-name .marca-golpe,
+#site-name .marca-fantasma,
+#content h1,
+.module h2,
+.module caption,
+.inline-group h2 {
+    font-family: 'Saira Condensed', 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+}
+
+#site-name .marca-golpe { color: var(--golpe); text-shadow: 0 0 18px rgba(255, 122, 28, 0.45); font-size: 1.5rem; }
+#site-name .marca-fantasma { color: var(--osso-fraco); font-size: 1.5rem; }
+
+#content h1 { font-size: 2.6rem; line-height: 1; color: var(--osso); margin-bottom: 1.2rem; }
+
+#header { border-bottom: 1px solid var(--linha); }
+div.breadcrumbs { border-bottom: 1px solid var(--linha); padding-block: 12px; }
+div.breadcrumbs,
+#user-tools,
+.object-tools a,
+.button,
+input[type=submit],
+.submit-row a.deletelink,
+th, thead th {
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* O seletor de tema do admin não existe aqui: o site é só escuro. */
+.theme-toggle { display: none; }
+
+/* --- módulos: sem caixa colorida, o título golpeia em laranja ----------- */
+
+.module { background: transparent; }
+.module h2,
+.module caption,
+.inline-group h2 {
+    background: transparent;
+    color: var(--golpe);
+    font-size: 1.15rem;
+    padding: 10px 0 6px;
+    border-bottom: 1px solid var(--fantasma);
+}
+.module caption a { color: inherit; }
+
+/* --- campos: só a linha de base, ângulo reto ---------------------------- */
+
+input[type=text], input[type=password], input[type=email], input[type=url],
+input[type=number], input[type=search], input[type=tel], textarea, select,
+.vTextField {
+    background: transparent;
+    color: var(--osso);
+    border: 0;
+    border-bottom: 1px solid var(--fantasma);
+    border-radius: 0;
+}
+input:focus, textarea:focus, select:focus {
+    border-bottom-color: var(--golpe);
+    box-shadow: 0 6px 12px -10px var(--golpe);
+}
+select option { background: var(--fundo-fundo); color: var(--osso); }
+
+/* --- botões ------------------------------------------------------------- */
+
+.button, input[type=submit], input[type=button], .submit-row input, a.button,
+.object-tools a {
+    border-radius: 0;
+    font-weight: 600;
+}
+.object-tools a { border: 1px solid var(--golpe); }
+.submit-row a.deletelink { color: #ff5a3c; border-radius: 0; }
+.submit-row { background: transparent; border: 0; border-top: 1px solid var(--linha); }
+
+/* Os ícones do admin são SVG verde e amarelo: terceira cor fora do sistema.
+   O texto da ação já diz o que ela faz. */
+a.addlink, a.changelink, a.viewlink, a.deletelink,
+.object-tools a.addlink, .object-tools a.viewsitelink {
+    background-image: none;
+    padding-left: 0;
+}
+.object-tools a.addlink { padding-left: 12px; }
+
+/* Lápis, mais, xis e olho ao lado dos campos: mesma ideia, ficam em osso
+   e golpeiam em laranja sob o ponteiro. */
+.related-widget-wrapper-link img,
+img[src*="admin/img/icon-"] { filter: grayscale(1) brightness(1.8); opacity: 0.6; }
+.related-widget-wrapper-link:hover img { filter: none; opacity: 1; }
+
+/* --- tabelas e listas --------------------------------------------------- */
+
+thead th, tfoot td { background: transparent; color: var(--osso-fraco); border-bottom: 1px solid var(--fantasma); }
+tr:nth-child(even), .row2 { background: rgba(255, 255, 255, 0.018); }
+#changelist-filter { background: rgba(255, 255, 255, 0.02); }
+#changelist-filter h2 { background: transparent; color: var(--golpe); }
+#changelist .actions { background: transparent; border-bottom: 1px solid var(--linha); }
+#changelist #toolbar { background: transparent; border-bottom: 1px solid var(--linha); }
+
+/* --- tela de login do admin --------------------------------------------- */
+
+.login #container {
+    background: rgba(4, 6, 12, 0.82);
+    border: 1px solid var(--linha);
+    border-radius: 0;
+    backdrop-filter: blur(8px);
+}
+.login #header { background: transparent; border-bottom: 1px solid var(--linha); }
+.login #content { padding: 24px 28px; }
+.login .submit-row input { width: 100%; padding: 12px; font-size: 0.95rem; }
+
+/* --- avisos ------------------------------------------------------------- */
+
+ul.messagelist li { color: var(--osso); border-left: 2px solid var(--golpe); }
+.errornote { border: 0; border-left: 2px solid #ff5a3c; background: rgba(255, 90, 60, 0.1); color: var(--osso); border-radius: 0; }
+
+/* --- barra lateral de navegação ----------------------------------------- */
+
+#nav-sidebar { background: transparent; border-right: 1px solid var(--linha); }
+#nav-sidebar .current-model { background: var(--selected-bg); }
+.toggle-nav-sidebar { background: transparent; border-color: var(--linha); color: var(--golpe); }

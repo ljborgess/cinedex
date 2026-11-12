@@ -295,3 +295,16 @@ O `@view-transition` (a capa "viajando" da lista para o detalhe) foi desligado.
 **Por quê:** a demonstração é ao vivo e o avaliador pode pedir qualquer tela. Nada pode abrir vazio, e preparar o ambiente não pode depender de lembrar comandos.
 
 **Consequência:** com a conta `ana`, a lista de atores passou a filtrar quem só aparece em filmes de outras contas, para a `demo` não ver atores com "0 filmes".
+
+## 37. Auditoria pelo padrão ProLobby
+
+O projeto foi revisado contra o checklist de segurança e as regras de código do ProLobby. Achados, correções e o que ficou de fora estão em [AUDITORIA.md](AUDITORIA.md).
+
+- Segredo e modo de execução vêm do ambiente (`DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`). Sem nenhuma variável, tudo roda como antes.
+- Limite de 5 tentativas por IP a cada 15 minutos no login e no cadastro, contado no cache do Django.
+- CSP em todas as respostas; HTTPS, cookie seguro e HSTS quando `DJANGO_DEBUG=0`.
+- CI no GitHub Actions: `pip-audit`, `makemigrations --check`, testes e `check --deploy`.
+
+**Por quê:** o projeto estava correto como trabalho de sala, mas não aguentaria sair dela: a chave estava no git, o `DEBUG` era fixo e o login aceitava tentativas sem fim.
+
+**Descartado:** renomear o código para inglês, como o ProLobby exige. O trabalho e a apresentação usam os nomes em português, e a troca reescreveria todas as migrations sem ganho para quem avalia. Ver [AUDITORIA.md](AUDITORIA.md#não-corrigido-de-propósito), item 15.
